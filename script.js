@@ -1,24 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
     const heroImageContainer = document.querySelector('.hero-image-container');
     const nav = document.querySelector('.main-nav');
+    const heroContent = document.querySelector('.hero-content');
     let lastScroll = 0;
 
     function updateAnimation() {
         const scrollY = window.scrollY;
         const windowHeight = window.innerHeight;
         
-        // Image scaling and positioning
-        const scrollProgress = Math.min(scrollY / (windowHeight * 0.8), 1);
-        const scale = 0.8 + (scrollProgress * 0.5);
-        const translateY = -45 + (scrollProgress * 20);
+        // Calculate scroll progress
+        const scrollProgress = Math.min(scrollY / (windowHeight * 0.6), 1);
+        
+        // Image transformation
+        const scale = 0.85 + (scrollProgress * 0.6);
+        const translateY = scrollProgress * -25;
         
         heroImageContainer.style.transform = `
-            translate(-50%, ${translateY}%) 
             scale(${scale})
+            translateY(${translateY}px)
         `;
 
+        // Content fade out
+        heroContent.style.opacity = 1 - (scrollProgress * 1.5);
+        heroContent.style.transform = `translateY(${scrollProgress * 50}px)`;
+
         // Navbar control
-        if (scrollY > windowHeight * 0.6 && scrollY > lastScroll) {
+        if (scrollY > windowHeight * 0.4) {
             nav.classList.add('visible');
         } else {
             nav.classList.remove('visible');

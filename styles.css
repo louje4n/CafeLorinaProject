@@ -12,19 +12,22 @@ body {
     overflow-x: hidden;
 }
 
+/* ---------------------------
+   NAV BAR
+   --------------------------- */
 .main-nav {
     position: fixed;
     top: -100px;
     width: 100%;
     padding: 1.5rem 0;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent; /* Starts out transparent */
+    transition: all 0.4s ease;
     z-index: 1000;
 }
 
 .main-nav.visible {
     top: 0;
+    background: transparent; /* Remains transparent on scroll now */
 }
 
 .nav-content {
@@ -38,25 +41,74 @@ body {
 
 .nav-title {
     font-family: 'Playfair Display', serif;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
+    color: #2d2d2d;
+    letter-spacing: 0.05em;
 }
 
+.nav-title:hover {
+    transform: scale(1.02);
+}
+
+.nav-links {
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+}
+
+.nav-links a {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: #2d2d2d;
+    text-decoration: none;
+    position: relative;
+    padding: 0.4rem 0;
+    transition: colour 0.3s ease;
+}
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #2d2d2d;
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.nav-links a:hover {
+    color: #444;
+}
+
+/* ---------------------------
+   HERO SECTION
+   --------------------------- */
 .hero {
     position: relative;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 15vh;
 }
 
 .hero-image-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100vw;
-    height: 100vh;
-    transform: translate(-50%, -45%) scale(0.8);
-    transform-origin: center center;
+    position: relative;
+    width: 55vw;
+    height: 55vh;
+    overflow: hidden;
+    transform: scale(0.85);
+    transform-origin: center top;
     will-change: transform;
+    margin: 2rem auto 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .hero-image {
@@ -64,41 +116,46 @@ body {
     height: 100%;
     object-fit: cover;
     object-position: center;
+    display: block;
 }
 
 .hero-content {
-    position: relative;
-    z-index: 100;
-    padding-top: 20vh;
     text-align: center;
-    mix-blend-mode: difference;
-    color: #fff;
+    max-width: 1200px;
+    padding: 0 2rem;
+    margin-bottom: 2rem;
+    z-index: 100;
+    transition: opacity 0.4s, transform 0.4s;
 }
 
 .main-title {
     font-family: 'Playfair Display', serif;
-    font-size: 6vw;
+    font-size: 5vw;
     font-weight: 700;
     letter-spacing: 0.02em;
     margin-bottom: 1.5rem;
-    opacity: 0.9;
+    line-height: 1;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .subtitle {
-    font-size: 1.4vw;
+    font-size: 1.4rem;
     font-weight: 300;
     max-width: 600px;
     margin: 0 auto;
     line-height: 1.8;
+    padding-bottom: 2rem;
 }
 
+/* ---------------------------
+   CONTENT SECTION
+   --------------------------- */
 .content-section {
     position: relative;
     z-index: 500;
     background: #fff;
     padding: 8rem 2rem;
-    margin-top: -10vh;
+    margin-top: 40vh;
 }
 
 .restaurant-name {
@@ -107,6 +164,7 @@ body {
     margin-bottom: 2rem;
     position: relative;
     padding-bottom: 1rem;
+    text-align: center;
 }
 
 .restaurant-name::after {
@@ -129,6 +187,8 @@ body {
     display: block;
     margin: 1rem 0;
     opacity: 0.8;
+    position: relative;
+    text-align: center;
 }
 
 .story-text {
@@ -136,12 +196,16 @@ body {
     font-size: 1.2rem;
     color: #666;
     margin-top: 3rem;
+    text-align: center;
 }
 
 .scroll-space {
     height: 100vh;
 }
 
+/* ---------------------------
+   RESPONSIVE
+   --------------------------- */
 @media (max-width: 768px) {
     .main-title {
         font-size: 3rem;
@@ -152,10 +216,39 @@ body {
     }
 
     .hero-image-container {
-        transform: translate(-50%, -40%) scale(1);
+        width: 85vw;
+        height: 40vh;
+        transform: scale(0.95);
     }
 
     .content-section {
         padding: 4rem 1rem;
+        margin-top: 30vh;
+    }
+}
+
+@media (min-width: 1600px) {
+    .hero-image-container {
+        width: 45vw;
+        height: 60vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-links {
+        gap: 1.5rem;
+    }
+
+    .nav-title {
+        font-size: 1.5rem;
+    }
+
+    .nav-links a {
+        font-size: 1rem;
     }
 }
