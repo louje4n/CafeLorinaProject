@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroImageContainer = document.querySelector('.hero-image-container');
     const nav = document.querySelector('.main-nav');
     const heroContent = document.querySelector('.hero-content');
+    let activeInfoWindow = null; // Track the currently active InfoWindow
 
     // Smooth Scroll Functionality
     document.querySelectorAll('.nav-links a').forEach(link => {
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const marker = new google.maps.Marker({
                 position: location.position,
                 map: map,
-                title: location.title
+                title: location.title // Display title on hover
             });
 
             const infoWindow = new google.maps.InfoWindow({
@@ -79,7 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             marker.addListener("click", () => {
-                infoWindow.open(map, marker);
+                // Close the previous InfoWindow, if any
+                if (activeInfoWindow) {
+                    activeInfoWindow.close();
+                }
+                infoWindow.open(map, marker); // Open the current InfoWindow
+                activeInfoWindow = infoWindow; // Update the active InfoWindow
+
                 updateLocationDetails(location);
             });
         });
@@ -93,20 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         notesContent.innerHTML = `
             <div class="landmark-notes">
+                <h2>${selectedLocation.title}</h2> <!-- Display location title -->
                 <div class="star-rating">${stars}</div>
                 
                 <div class="note-category">
-                    <img src="atmosphere-icon.svg" class="category-icon" alt="Atmosphere">
+                    <img src="images/love.png" class="category-icon" alt="Atmosphere">
                     <strong>Atmosphere:</strong> ${selectedLocation.personalNotes.atmosphere}
                 </div>
                 
                 <div class="note-category">
-                    <img src="musttry-icon.svg" class="category-icon" alt="Must Try">
+                    <img src="images/danger.png" class="category-icon" alt="Must Try">
                     <strong>Must Try:</strong> ${selectedLocation.personalNotes.mustTry}
                 </div>
                 
                 <div class="note-category">
-                    <img src="tip-icon.svg" class="category-icon" alt="Pro Tip">
+                    <img src="images/idea.png" class="category-icon" alt="Pro Tip">
                     <strong>Pro Tip:</strong> ${selectedLocation.personalNotes.tip}
                 </div>
                 
