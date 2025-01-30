@@ -1,42 +1,36 @@
-const scrollContainer = document.querySelector('.scroll-container');
-const imageWrapper = document.querySelector('.image-wrapper');
+document.addEventListener('DOMContentLoaded', () => {
+    const heroImageContainer = document.querySelector('.hero-image-container');
+    const nav = document.querySelector('.main-nav');
+    let lastScroll = 0;
 
-function updateScale() {
-    const scrollY = window.scrollY;
-    const windowHeight = window.innerHeight;
-    
-    // Calculate scroll progress (0 to 1)
-    const scrollProgress = Math.min(scrollY / windowHeight, 1);
-    
-    // Scale from 0.5 to 1
-    const scale = 0.5 + (scrollProgress * 0.5);
-    
-    // Horizontal movement
-    const translateX = -50 * (1 - scrollProgress);
-    
-    imageWrapper.style.transform = `
-        translate(-50%, -50%) 
-        translateX(${translateX}%) 
-        scale(${scale})
-    `;
+    function updateAnimation() {
+        const scrollY = window.scrollY;
+        const windowHeight = window.innerHeight;
+        
+        // Image scaling and positioning
+        const scrollProgress = Math.min(scrollY / (windowHeight * 0.8), 1);
+        const scale = 0.8 + (scrollProgress * 0.5);
+        const translateY = -45 + (scrollProgress * 20);
+        
+        heroImageContainer.style.transform = `
+            translate(-50%, ${translateY}%) 
+            scale(${scale})
+        `;
 
-    // Fade in container
-    scrollContainer.style.opacity = Math.min(scrollY / 100, 1);
-}
-
-function debounce(func) {
-    let ticking = false;
-    return function() {
-        if (!ticking) {
-            requestAnimationFrame(() => {
-                func();
-                ticking = false;
-            });
+        // Navbar control
+        if (scrollY > windowHeight * 0.6 && scrollY > lastScroll) {
+            nav.classList.add('visible');
+        } else {
+            nav.classList.remove('visible');
         }
-        ticking = true;
-    };
-}
+        lastScroll = scrollY;
+    }
 
-window.addEventListener('scroll', debounce(updateScale));
-window.addEventListener('resize', debounce(updateScale));
-updateScale();
+    function handleScroll() {
+        requestAnimationFrame(updateAnimation);
+    }
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+});
