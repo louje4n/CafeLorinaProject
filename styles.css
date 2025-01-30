@@ -252,3 +252,56 @@ body {
         font-size: 1rem;
     }
 }
+
+/* Add to styles.css */
+.map-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 2rem auto;
+    height: 600px;
+}
+
+#map {
+    height: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.location-descriptions {
+    padding: 1rem;
+    overflow-y: auto;
+    background: rgba(245, 243, 239, 0.3);
+    border-radius: 12px;
+}
+
+.location-card {
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.location-card:hover {
+    transform: translateY(-3px);
+}
+
+@media (max-width: 768px) {
+    .map-container {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    #map {
+        height: 400px;
+    }
+    
+    .location-descriptions {
+        height: 300px;
+    }
+}
+

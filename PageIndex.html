@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorina's Cafe</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBenxiDC0qULBkpP5QSqkLV64LbFgGwzEs&callback=initMap" defer></script>
 </head>
 <body>
     <nav class="main-nav">
@@ -29,17 +30,6 @@
             </div>
         </section>
 
-        <section class="content-section">
-            <div class="restaurant-section">
-                <h2 class="restaurant-name">LORINA CAFE</h2>
-                <div class="cuisine-types">
-                    <span>LOCATIONS</span>
-                    <span>OUR CHOICES</span>
-                    <span>OUR STORY</span>
-                </div>
-                <p class="story-text">Each has its own story</p>
-            </div>
-        </section>
 
         <section class="content-section" id="choice"> <!-- Updated ID -->
             <div class="restaurant-section">
@@ -53,11 +43,17 @@
                 <!-- Add story content here -->
             </div>
         </section>
-
-        <section class="content-section" id="location">
+       
+        <!-- In your Locations section -->
+        <section class="content-section" id="locations">
             <div class="restaurant-section">
-                <h2 class="restaurant-name">LOCATIONS</h2>
-                <!-- Add story content here -->
+                <h2 class="restaurant-name">OUR LOCATIONS</h2>
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="location-descriptions">
+                        <!-- Descriptions will be populated dynamically -->
+                    </div>
+                </div>
             </div>
         </section>
 
