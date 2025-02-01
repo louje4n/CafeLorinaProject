@@ -51,6 +51,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Call
     updateAnimation();
 
+    // Card Tap Flip Logic for Mobile
+    const cards = document.querySelectorAll('.card');
+
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            // Reset other cards
+            cards.forEach(c => {
+                if (c !== card) c.querySelector('.card-inner').style.transform = 'rotateY(0)';
+            });
+
+            // Toggle current card
+            const cardInner = card.querySelector('.card-inner');
+            cardInner.style.transform = 
+                cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0)' : 'rotateY(180deg)';
+        });
+    });
+
     // Map Initialization
     let map;
     function initMap() {
@@ -168,3 +185,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initMap();
 });
+
+
