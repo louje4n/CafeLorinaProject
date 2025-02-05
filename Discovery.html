@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discovery - Lorina's Cafe</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+</head>
+<body>
+    <nav class="main-nav1">
+        <div class="nav-content">
+            <span class="nav-title">LORINA</span>
+            <div class="nav-links">
+                <a href="PageIndex.html">HOME</a>
+                <a href="discovery.html">DISCOVERY</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="content-section">
+            <h2 class="restaurant-name">CAFE DISCOVERY</h2>
+            
+            <!-- Updated Post Form -->
+            <div class="discovery-form">
+                <input type="file" id="imageUpload" accept="image/*">
+                <textarea id="caption" placeholder="Add your caption..."></textarea>
+                <button id="postButton">Share Find ☕</button>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <!-- Posts Grid -->
+            <div id="postsGrid" class="posts-grid"></div>
+        </section>
+    </main>
+
+</body>
+</html>
