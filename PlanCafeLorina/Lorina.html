@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lorina — Café Social App</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#100C08;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;}
+::-webkit-scrollbar{display:none;}*{scrollbar-width:none;}
+input,textarea,button{font-family:'DM Sans',sans-serif;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.4s ease forwards;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="lorina-data.jsx"></script>
+<script type="text/babel" src="lorina-ui.jsx"></script>
+<script type="text/babel" src="lorina-screens-1.jsx"></script>
+<script type="text/babel" src="lorina-screens-2.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+
+<script type="text/babel">
+// ── TWEAK DEFAULTS ───────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": 1,
+  "dark": false
+}/*EDITMODE-END*/;
+
+// ── APP ──────────────────────────────────────────────────────────
+function App() {
+  const [tweaks, setTweaks] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('lorina_tweaks')) || TWEAK_DEFAULTS; }
+    catch { return TWEAK_DEFAULTS; }
+  });
+  const [screen, setScreen] = React.useState(() => localStorage.getItem('lorina_screen') || 'splash');
+  const [selectedCafe, setSelectedCafe] = React.useState(null);
+  const [showTweaks, setShowTweaks] = React.useState(false);
+
+  const T = window.getT(tweaks.theme, tweaks.dark);
+
+  // Persist screen
+  React.useEffect(() => { localStorage.setItem('lorina_screen', screen); }, [screen]);
+  React.useEffect(() => { localStorage.setItem('lorina_tweaks', JSON.stringify(tweaks)); }, [tweaks]);
+
+  // Tweaks protocol
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const setTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+  };
+
+  const navigate = (s) => setScreen(s);
+  const selectCafe = (c) => setSelectedCafe(c);
+
+  const mainScreens = ['home','map','community','search','profile'];
+  const hasNav = mainScreens.includes(screen);
+
+  const props = { T, navigate, selectCafe, cafe: selectedCafe, dark: tweaks.dark };
+
+  const renderScreen = () => {
+    switch(screen) {
+      case 'splash':     return <SplashScreen {...props} onDone={() => navigate('onboarding')}/>;
+      case 'onboarding': return <OnboardingScreen {...props}/>;
+      case 'home':       return <HomeScreen {...props}/>;
+      case 'map':        return <MapScreen {...props}/>;
+      case 'cafe':       return <CafeProfileScreen {...props}/>;
+      case 'reviews':    return <ReviewsScreen {...props}/>;
+      case 'community':  return <CommunityScreen {...props}/>;
+      case 'search':     return <SearchScreen {...props}/>;
+      case 'profile':    return <ProfileScreen {...props}/>;
+      default:           return <HomeScreen {...props}/>;
+    }
+  };
+
+  // 3 theme palette swatches
+  const palettes = [
+    { id:1, name:'Oat',       swatches:['#7C5230','#B48C6C','#D4BEA4'] },
+    { id:2, name:'Parchment', swatches:['#6B5040','#A89080','#CCC0B4'] },
+    { id:3, name:'Dusk',      swatches:['#5C4434','#9C8070','#BEB0A4'] },
+  ];
+
+  return (
+    <div style={{ display:'flex', gap:40, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
+      {/* Label column */}
+      <div style={{ display:'flex', flexDirection:'column', gap:0, alignItems:'flex-start', maxWidth:260 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24 }}>
+          <LorinaLogo size={40} color='#7C5230'/>
+          <div>
+            <div style={{ fontFamily:'Playfair Display,serif', fontSize:26, fontWeight:700, color:'#F2EAE0', letterSpacing:-0.5 }}>Lorina</div>
+            <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'#7A6A5C', marginTop:1 }}>Your café social</div>
+          </div>
+        </div>
+        <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'#A09080', lineHeight:1.8, marginBottom:28 }}>
+          A community-first iOS app for café-loving students. Discover study spots, report live busyness & connect.
+        </div>
+        {/* Theme selector */}
+        <div style={{ width:'100%' }}>
+          <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:10, fontWeight:700, color:'#7A6A5C', textTransform:'uppercase', letterSpacing:1, marginBottom:10 }}>
+            Explore Themes
+          </div>
+          {palettes.map(p => (
+            <button key={p.id} onClick={() => setTweak('theme', p.id)} style={{
+              width:'100%', display:'flex', alignItems:'center', gap:12, padding:'10px 14px',
+              borderRadius:14, border:`1.5px solid ${tweaks.theme===p.id?'#7C5230':'#2A2040'}`,
+              background:tweaks.theme===p.id?'#7C5230'+'18':'transparent',
+              cursor:'pointer', marginBottom:8, transition:'all 0.18s',
+            }}>
+              <div style={{ display:'flex', gap:4 }}>
+                {p.swatches.map((c,i) => (
+                  <div key={i} style={{ width:18, height:18, borderRadius:'50%', background:c }}/>
+                ))}
+              </div>
+              <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, fontWeight: tweaks.theme===p.id?700:400, color: tweaks.theme===p.id?'#7C5230':'#A090B8' }}>
+                {p.name}
+              </span>
+              {tweaks.theme===p.id && <span style={{ marginLeft:'auto', color:'#7C5230', fontSize:14 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+        {/* Dark mode toggle */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', marginTop:12, padding:'10px 14px', borderRadius:14, border:'1.5px solid #2A2040' }}>
+          <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:12, color:'#A09080' }}>Dark Mode</span>
+          <button onClick={() => setTweak('dark', !tweaks.dark)} style={{
+            width:46, height:26, borderRadius:13,
+            background:tweaks.dark?T.primary:'#3A3050', border:'none', cursor:'pointer',
+            position:'relative', transition:'background 0.25s',
+          }}>
+            <div style={{
+              width:20, height:20, borderRadius:'50%', background:'#fff',
+              position:'absolute', top:3, left:tweaks.dark?23:3, transition:'left 0.22s',
+            }}/>
+          </button>
+        </div>
+        {/* Screen nav */}
+        <div style={{ width:'100%', marginTop:16 }}>
+          <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:10, fontWeight:700, color:'#7A6A5C', textTransform:'uppercase', letterSpacing:1, marginBottom:10 }}>
+            Jump to Screen
+          </div>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            {[
+              {id:'splash',l:'Splash'},
+              {id:'onboarding',l:'Onboarding'},
+              {id:'home',l:'Home'},
+              {id:'map',l:'Map'},
+              {id:'cafe',l:'Café Profile'},
+              {id:'reviews',l:'Reviews'},
+              {id:'community',l:'Community'},
+              {id:'search',l:'Search'},
+              {id:'profile',l:'Profile'},
+            ].map(s => (
+              <button key={s.id} onClick={() => navigate(s.id)} style={{
+                padding:'6px 11px', borderRadius:20, border:`1px solid ${screen===s.id?'#7C5230':'#2A2040'}`,
+                background:screen===s.id?'#7C5230'+'22':'transparent',
+                color:screen===s.id?'#7C5230':'#A09080',
+                fontFamily:'DM Sans,sans-serif', fontSize:11, fontWeight:screen===s.id?700:400,
+                cursor:'pointer', whiteSpace:'nowrap',
+              }}>{s.l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* iPhone frame */}
+      <div style={{ position:'relative' }}>
+        <IOSDevice dark={tweaks.dark} width={402} height={874}>
+          <div style={{ position:'relative', height:'100%', background:T.bg, overflow:'hidden' }}>
+            {renderScreen()}
+            {hasNav && <BottomNav screen={screen} navigate={navigate} T={T}/>}
+          </div>
+        </IOSDevice>
+      </div>
+
+      {/* Tweaks panel (toolbar toggle) */}
+      {showTweaks && (
+        <div style={{
+          position:'fixed', bottom:20, right:20, zIndex:9999,
+          background:'#1C1830', border:'1px solid #2E2448', borderRadius:18,
+          padding:18, width:230, boxShadow:'0 12px 40px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontFamily:'DM Sans,sans-serif', fontWeight:700, color:'#F2EAE0', fontSize:14, marginBottom:14 }}>Tweaks</div>
+          <div style={{ fontFamily:'DM Sans,sans-serif', fontSize:10, color:'#7A6A5C', fontWeight:700, textTransform:'uppercase', letterSpacing:0.9, marginBottom:8 }}>Theme</div>
+          <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+            {palettes.map(p => (
+              <button key={p.id} onClick={() => setTweak('theme', p.id)} style={{
+                flex:1, height:34, borderRadius:10, border:`2px solid ${tweaks.theme===p.id?p.swatches[0]:'#2E2448'}`,
+                background:p.swatches[0]+'22', cursor:'pointer',
+                fontFamily:'DM Sans,sans-serif', fontSize:9, fontWeight:700, color:p.swatches[0],
+              }}>{['Oat','Parchment','Dusk'][p.id-1]}</button>
+            ))}
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span style={{ fontFamily:'DM Sans,sans-serif', fontSize:13, color:'#A09080' }}>Dark Mode</span>
+            <button onClick={() => setTweak('dark', !tweaks.dark)} style={{
+              width:46, height:26, borderRadius:13,
+              background:tweaks.dark?T.primary:'#3A3050', border:'none', cursor:'pointer',
+              position:'relative', transition:'background 0.25s',
+            }}>
+              <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:3, left:tweaks.dark?23:3, transition:'left 0.22s' }}/>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

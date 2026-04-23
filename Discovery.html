@@ -2,20 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover">
     <title>Discovery - Lorina's Cafe</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cloudName = 'dxxk18qsg';
+            const uploadPreset = 'lorina_unsigned';
+            const imageUpload = document.getElementById('imageUpload');
+            const caption = document.getElementById('caption');
+            const postButton = document.getElementById('postButton');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const postsGrid = document.getElementById('postsGrid');
+            let loggedInUser = '';
 
+            // 🔐 Prompt for login every time the page loads
+            function requireLogin() {
+                loggedInUser = prompt('Enter your Full name to access Cafe Discovery:').trim();
+                if (!loggedInUser) {
+                    alert('First Name and Last is required!');
+                    requireLogin(); // Keep asking until a username is entered
+                }
+                localStorage.setItem('loggedInUser', loggedInUser);
+            }
 
+            requireLogin(); // Force login
 
+            // Load posts on page load
+            loadPosts();
+
+            // Post Upload Handler
+            postButton.addEventListener('click', () => {
+                if (!imageUpload.files[0]) {
+                    uploadStatus.textContent = 'Please select an image';
+                    return;
+                }
+
+                uploadStatus.textContent = 'Uploading...';
+
+                const formData = new FormData();
+                formData.append('file', imageUpload.files[0]);
+                formData.append('upload_preset', uploadPreset);
+
+                fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const newPost = {
+                        id: generateUniqueId(),
+                        imageUrl: data.secure_url,
+                        caption: caption.value,
+                        username: loggedInUser, // Username is stored but not displayed
+                        timestamp: new Date().toISOString()
+                    };
+
+                    savePost(newPost);
+                    addPostToGrid(newPost);
+
+                    imageUpload.value = '';
+                    caption.value = '';
+                    uploadStatus.textContent = 'Posted successfully!';
+                })
+                .catch(error => {
+                    console.error('Upload failed:', error);
+                    uploadStatus.textContent = 'Upload failed. Please try again.';
+                });
+            });
+
+            function generateUniqueId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            }
+
+            function savePost(post) {
+                const existingPosts = JSON.parse(localStorage.getItem('lorinaPosts') || '[]');
+                existingPosts.unshift(post);
+                localStorage.setItem('lorinaPosts', JSON.stringify(existingPosts));
+            }
+
+            function loadPosts() {
+                const posts = JSON.parse(localStorage.getItem('lorinaPosts') || '[]');
+                postsGrid.innerHTML = '';
+                posts.forEach(post => addPostToGrid(post));
+            }
+
+            function addPostToGrid(post) {
+                const postCard = document.createElement('div');
+                postCard.className = 'post-card';
+                postCard.dataset.postId = post.id;
+
+                postCard.innerHTML = `
+                    <img src="${post.imageUrl}" alt="Cafe discovery">
+                    <div class="post-caption">${post.caption}</div>
+                    <button class="delete-button">Delete</button>
+                `;
+
+                const deleteButton = postCard.querySelector('.delete-button');
+                deleteButton.addEventListener('click', () => handleDelete(post.id, post.username, postCard));
+
+                postsGrid.prepend(postCard);
+            }
+
+            function handleDelete(postId, postOwner, postCard) {
+                if (loggedInUser === postOwner || loggedInUser === 'LorinaAdmin') {
+                    deletePost(postId);
+                    postCard.remove();
+                    uploadStatus.textContent = 'Post deleted successfully!';
+                    setTimeout(() => uploadStatus.textContent = '', 2000);
+                } else {
+                    alert('You are not authorized to delete this post.');
+                }
+            }
+
+            function deletePost(postId) {
+                const existingPosts = JSON.parse(localStorage.getItem('lorinaPosts') || '[]');
+                const updatedPosts = existingPosts.filter(post => post.id !== postId);
+                localStorage.setItem('lorinaPosts', JSON.stringify(updatedPosts));
+            }
+        });
+    </script>
+    <style>
+        .post-card {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .delete-button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: #ff5252;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background: #ff1a1a;
+        }
+    </style>
 </head>
 <body>
-    <nav class="main-nav1">
+    <nav class="navdiscovery">
         <div class="nav-content">
             <span class="nav-title">LORINA</span>
             <div class="nav-links">
-                <a href="PageIndex.html">HOME</a>
+                <a href="index.html">HOME</a>
                 <a href="discovery.html">DISCOVERY</a>
             </div>
         </div>
@@ -24,8 +161,8 @@
     <main>
         <section class="content-section">
             <h2 class="restaurant-name">CAFE DISCOVERY</h2>
-            
-            <!-- Updated Post Form -->
+
+            <!-- Post Form -->
             <div class="discovery-form">
                 <input type="file" id="imageUpload" accept="image/*">
                 <textarea id="caption" placeholder="Add your caption..."></textarea>
@@ -38,5 +175,8 @@
         </section>
     </main>
 
+    <footer class="footer">
+        <p>© 2025 LORINA - Melbourne's Café Guide</p>
+    </footer>
 </body>
 </html>
