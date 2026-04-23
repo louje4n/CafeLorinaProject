@@ -9,9 +9,9 @@ import Svg, { Path, Circle } from 'react-native-svg';
 
 // ─── BusynessChip ─────────────────────────────────────────────────
 const BUSYNESS_MAP = {
-  quiet:    { label: 'Quiet',    dot: '#4A9E6A' },
-  moderate: { label: 'Moderate', dot: '#C0882A' },
-  busy:     { label: 'Busy',     dot: '#B84848' },
+  quiet:    { label: 'Quiet',    dot: '#10B981' },
+  moderate: { label: 'Moderate', dot: '#F59E0B' },
+  busy:     { label: 'Busy',     dot: '#EF4444' },
 };
 
 export function BusynessChip({ level, mini = false }) {
@@ -34,7 +34,7 @@ export function Stars({ rating, size = 12 }) {
         <Svg key={i} width={size} height={size} viewBox="0 0 12 12">
           <Path
             d="M6 1l1.5 3 3.3.5-2.4 2.3.6 3.3L6 8.8l-3 1.3.6-3.3L1.2 4.5 4.5 4z"
-            fill={i <= Math.round(rating) ? '#C0882A' : '#E0D8CE'}
+            fill={i <= Math.round(rating) ? '#F59E0B' : '#E5E7EB'}
           />
         </Svg>
       ))}

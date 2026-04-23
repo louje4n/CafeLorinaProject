@@ -1,76 +1,123 @@
 /**
  * Theme definitions for the Lorina app.
  *
- * Three palettes — Oat, Parchment, Dusk — each with light and dark variants.
+ * Three palettes — each with light and dark variants.
  * Use getT(themeId, dark) to resolve a flat token object for use in styles.
+ *
+ * 1. Espresso — warm white base, rich coffee-brown primary (default)
+ * 2. Caramel  — warm white base, golden honey/caramel primary
+ * 3. Matcha   — warm white base, earthy sage-green primary
  */
 
 export const THEMES = {
   1: {
-    name: 'Oat',
-    primary: '#7C5230',
-    primaryDark: '#5E3C22',
-    secondary: '#B48C6C',
-    accent: '#D4BEA4',
-    bg: { light: '#F6F2ED', dark: '#130D08' },
-    surf: { light: '#EDE8E1', dark: '#1E160F' },
-    card: { light: '#FFFFFF', dark: '#271D14' },
-    text: { light: '#1A120A', dark: '#EDE8E1' },
-    sub: { light: '#7A6A5C', dark: '#A09080' },
-    border: { light: '#DDD5CB', dark: '#362818' },
-    chip: { light: '#EDE8E1', dark: '#271D14' },
+    name: 'Espresso',
+    primaryDark: '#4E2C10',
+    secondary: '#C48A5A',
+    accent: '#E8C9A0',
+    light: {
+      bg:     '#FAFAF8',   // Barely warm white — not grey, not beige
+      surf:   '#F4EDE6',   // Warm linen for surface areas
+      card:   '#FFFFFF',   // Pure white cards
+      text:   '#1A100A',   // Deep espresso — softer than pure black
+      sub:    '#7A6252',   // Warm taupe for secondary text
+      border: '#EDE5DC',   // Subtle warm border
+      chip:   '#F4EDE6',
+      primary:   '#6B3F1F', // Rich roasted espresso brown
+      secondary: '#C48A5A', // Caramel accent
+    },
+    dark: {
+      bg:     '#110C08',
+      surf:   '#1C1410',
+      card:   '#261C14',
+      text:   '#F5EDE4',
+      sub:    '#A08870',
+      border: '#382818',
+      chip:   '#261C14',
+      primary:   '#D4956A', // Warm caramel — readable on dark
+      secondary: '#E8C9A0',
+    },
   },
   2: {
-    name: 'Parchment',
-    primary: '#6B5040',
-    primaryDark: '#503C30',
-    secondary: '#A89080',
-    accent: '#CCC0B4',
-    bg: { light: '#F4F0EC', dark: '#110E0A' },
-    surf: { light: '#EAE6E0', dark: '#1C1610' },
-    card: { light: '#FFFFFF', dark: '#241C14' },
-    text: { light: '#18100A', dark: '#EAE6E0' },
-    sub: { light: '#72645A', dark: '#988880' },
-    border: { light: '#D8D0C8', dark: '#302418' },
-    chip: { light: '#EAE6E0', dark: '#241C14' },
+    name: 'Caramel',
+    primaryDark: '#A0621E',
+    secondary: '#D4956A',
+    accent: '#FAD5A5',
+    light: {
+      bg:     '#FAFAF8',
+      surf:   '#FFF6EE',
+      card:   '#FFFFFF',
+      text:   '#1A100A',
+      sub:    '#7A6252',
+      border: '#FCDEBB',
+      chip:   '#FFF6EE',
+      primary:   '#C07028', // Honey / golden caramel
+      secondary: '#D4956A',
+    },
+    dark: {
+      bg:     '#110D06',
+      surf:   '#1C1508',
+      card:   '#261C0C',
+      text:   '#F5EDE4',
+      sub:    '#A08068',
+      border: '#382810',
+      chip:   '#261C0C',
+      primary:   '#E8A84A',
+      secondary: '#F0C880',
+    },
   },
   3: {
-    name: 'Dusk',
-    primary: '#5C4434',
-    primaryDark: '#3E2E22',
-    secondary: '#9C8070',
-    accent: '#BEB0A4',
-    bg: { light: '#F0EBE5', dark: '#0E0A07' },
-    surf: { light: '#E6E0D8', dark: '#181209' },
-    card: { light: '#FFFFFF', dark: '#211810' },
-    text: { light: '#160E08', dark: '#E6E0D8' },
-    sub: { light: '#6A5C50', dark: '#908070' },
-    border: { light: '#D0C8BF', dark: '#2A1E14' },
-    chip: { light: '#E6E0D8', dark: '#211810' },
+    name: 'Matcha',
+    primaryDark: '#2D5C3A',
+    secondary: '#7AAF8A',
+    accent: '#B8D8C4',
+    light: {
+      bg:     '#F8FAF8',
+      surf:   '#EEF5F0',
+      card:   '#FFFFFF',
+      text:   '#0E1E14',
+      sub:    '#527060',
+      border: '#D4EAD8',
+      chip:   '#EEF5F0',
+      primary:   '#3D7A52', // Earthy sage-green — like matcha
+      secondary: '#7AAF8A',
+    },
+    dark: {
+      bg:     '#080F0A',
+      surf:   '#101A12',
+      card:   '#16241A',
+      text:   '#ECF5EE',
+      sub:    '#7AAF8A',
+      border: '#1E3424',
+      chip:   '#16241A',
+      primary:   '#6BBF84',
+      secondary: '#A8D8B8',
+    },
   },
 };
 
 /**
  * Resolves a flat theme token object from the nested THEMES structure.
- * @param {number} themeId  - 1 (Oat), 2 (Parchment), or 3 (Dusk)
+ * @param {number} themeId  - 1 (Espresso), 2 (Caramel), or 3 (Matcha)
  * @param {boolean} dark    - Whether dark mode is active
  * @returns {object}        - Flat token map used throughout the app
  */
 export function getT(themeId, dark) {
   const t = THEMES[themeId];
+  const mode = dark ? t.dark : t.light;
   return {
-    primary: t.primary,
-    primaryDark: t.primaryDark,
-    secondary: t.secondary,
-    accent: t.accent,
-    bg: dark ? t.bg.dark : t.bg.light,
-    surf: dark ? t.surf.dark : t.surf.light,
-    card: dark ? t.card.dark : t.card.light,
-    text: dark ? t.text.dark : t.text.light,
-    sub: dark ? t.sub.dark : t.sub.light,
-    border: dark ? t.border.dark : t.border.light,
-    chip: dark ? t.chip.dark : t.chip.light,
-    name: t.name,
+    name:         t.name,
     dark,
+    primaryDark:  t.primaryDark,
+    secondary:    t.secondary,
+    accent:       t.accent,
+    primary:      mode.primary,
+    bg:           mode.bg,
+    surf:         mode.surf,
+    card:         mode.card,
+    text:         mode.text,
+    sub:          mode.sub,
+    border:       mode.border,
+    chip:         mode.chip,
   };
 }

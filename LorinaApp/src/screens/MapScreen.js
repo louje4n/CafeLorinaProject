@@ -25,7 +25,7 @@ import { CAFES } from '../data/cafes';
 const { width: SCREEN_W } = Dimensions.get('window');
 
 function heatColor(h) {
-  return h < 0.3 ? '#4A9E6A' : h < 0.65 ? '#C0882A' : '#B84848';
+  return h < 0.3 ? '#10B981' : h < 0.65 ? '#F59E0B' : '#EF4444';
 }
 
 export default function MapScreen({ navigation }) {
@@ -128,7 +128,7 @@ export default function MapScreen({ navigation }) {
       {/* ── Legend ── */}
       {heatmap && (
         <View style={[styles.legend, { top: insets.top + 60, backgroundColor: T.card, borderColor: T.border }]}>
-          {[['Quiet', '#4A9E6A'], ['Moderate', '#C0882A'], ['Busy', '#B84848']].map(([l, c]) => (
+          {[['Quiet', '#10B981'], ['Moderate', '#F59E0B'], ['Busy', '#EF4444']].map(([l, c]) => (
             <View key={l} style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: c }]} />
               <Text style={[styles.legendLabel, { color: T.text }]}>{l}</Text>

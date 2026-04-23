@@ -5,7 +5,7 @@ import { getT } from '../data/themes';
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [themeId, setThemeId] = useState(1);   // 1=Oat, 2=Parchment, 3=Dusk
+  const [themeId, setThemeId] = useState(1);   // 1=Minimal, 2=Azure, 3=Sage
   const [dark, setDark] = useState(false);
 
   const T = getT(themeId, dark);

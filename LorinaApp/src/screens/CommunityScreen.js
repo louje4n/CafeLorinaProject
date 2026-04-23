@@ -23,9 +23,9 @@ import { ThumbsUpIco } from '../components/Icons';
 import { CAFES, COMMUNITY_POSTS } from '../data/cafes';
 
 const BUSYNESS_OPTS = [
-  { key: 'quiet',    label: 'Quiet',    sub: 'Plenty of seats', col: '#4A9E6A' },
-  { key: 'moderate', label: 'Moderate', sub: 'Getting busy',    col: '#C0882A' },
-  { key: 'busy',     label: 'Busy',     sub: 'Almost full',     col: '#B84848' },
+  { key: 'quiet',    label: 'Quiet',    sub: 'Plenty of seats', col: '#10B981' },
+  { key: 'moderate', label: 'Moderate', sub: 'Getting busy',    col: '#F59E0B' },
+  { key: 'busy',     label: 'Busy',     sub: 'Almost full',     col: '#EF4444' },
 ];
 
 export default function CommunityScreen() {
