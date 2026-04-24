@@ -1,101 +1,170 @@
 /**
  * MapScreen
  *
- * Full-screen SVG city map with:
- *   - Heatmap overlay (toggleable) showing cafe busyness by area
- *   - Tappable cafe pins that open a bottom sheet preview
- *   - Bottom sheet navigates to full CafeProfile
- *
- * Safe area: top bar positioned using insets.top.
+ * SVG map of Melbourne CBD. Cafe pins and heatmap rings are placed using
+ * real lat/lng from Supabase, projected onto the SVG canvas via a linear
+ * bounding-box transform covering the CBD grid.
  */
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import Svg, {
-  Rect,
-  Circle,
-  G,
-  Text as SvgText,
-  Line,
-} from 'react-native-svg';
+import Svg, { Rect, Circle, G, Text as SvgText, Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { BusynessChip, SeatBar } from '../components/SharedUI';
-import { CAFES } from '../data/cafes';
+import { useCafes } from '../hooks/useCafes';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-function heatColor(h) {
-  return h < 0.3 ? '#10B981' : h < 0.65 ? '#F59E0B' : '#EF4444';
+// Bounding box — Melbourne CBD
+const LNG_MIN = 144.955;
+const LNG_MAX = 144.968;
+const LAT_MAX = -37.804;
+const LAT_MIN = -37.815;
+const SVG_W = 402;
+const SVG_H = 740;
+
+function latLngToSvg(lat, lng) {
+  const x = ((lng - LNG_MIN) / (LNG_MAX - LNG_MIN)) * SVG_W;
+  const y = ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN)) * SVG_H;
+  return { x, y };
 }
+
+function busynessHeat(level) {
+  if (level === 'quiet') return 0.2;
+  if (level === 'moderate') return 0.5;
+  return 0.85;
+}
+
+function heatColor(h) {
+  return h < 0.35 ? '#10B981' : h < 0.65 ? '#F59E0B' : '#EF4444';
+}
+
+// Melbourne CBD street positions (SVG pixels)
+// EW streets (horizontal)
+const LA_TROBE_Y = 202;   // lat -37.807
+const LONSDALE_Y = 336;   // lat -37.809
+const BOURKE_Y   = 538;   // lat -37.812
+const COLLINS_Y  = 672;   // lat -37.814
+// NS streets (vertical)
+const WILLIAM_X  = 124;   // lng 144.959
+const QUEEN_X    = 216;   // lng 144.962
+const ELIZABETH_X = 309;  // lng 144.965
+
+const ROAD_W = 14;
+const BLOCK_COLOR_LIGHT = '#E4DDD4';
+const BLOCK_COLOR_DARK  = '#201810';
+const ROAD_COLOR_LIGHT  = '#D0C8BE';
+const ROAD_COLOR_DARK   = '#2A1E14';
 
 export default function MapScreen({ navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
+  const { cafes } = useCafes();
   const [heatmap, setHeatmap] = useState(true);
   const [sel, setSel] = useState(null);
 
-  function goToCafe(cafe) {
-    navigation.navigate('CafeProfile', { cafe });
-  }
+  const roadFill = T.dark ? ROAD_COLOR_DARK : ROAD_COLOR_LIGHT;
+  const blockFill = T.dark ? BLOCK_COLOR_DARK : BLOCK_COLOR_LIGHT;
+
+  // City blocks filling the CBD grid spaces
+  const blocks = [
+    // Row 0: north of La Trobe
+    [0,           0, WILLIAM_X - ROAD_W/2,                    LA_TROBE_Y - ROAD_W/2],
+    [WILLIAM_X + ROAD_W/2, 0, QUEEN_X - WILLIAM_X - ROAD_W,   LA_TROBE_Y - ROAD_W/2],
+    [QUEEN_X + ROAD_W/2,   0, ELIZABETH_X - QUEEN_X - ROAD_W, LA_TROBE_Y - ROAD_W/2],
+    [ELIZABETH_X + ROAD_W/2, 0, SVG_W - ELIZABETH_X - ROAD_W/2, LA_TROBE_Y - ROAD_W/2],
+    // Row 1: La Trobe → Lonsdale
+    [0,           LA_TROBE_Y + ROAD_W/2, WILLIAM_X - ROAD_W/2,                    LONSDALE_Y - LA_TROBE_Y - ROAD_W],
+    [WILLIAM_X + ROAD_W/2, LA_TROBE_Y + ROAD_W/2, QUEEN_X - WILLIAM_X - ROAD_W,   LONSDALE_Y - LA_TROBE_Y - ROAD_W],
+    [QUEEN_X + ROAD_W/2,   LA_TROBE_Y + ROAD_W/2, ELIZABETH_X - QUEEN_X - ROAD_W, LONSDALE_Y - LA_TROBE_Y - ROAD_W],
+    [ELIZABETH_X + ROAD_W/2, LA_TROBE_Y + ROAD_W/2, SVG_W - ELIZABETH_X - ROAD_W/2, LONSDALE_Y - LA_TROBE_Y - ROAD_W],
+    // Row 2: Lonsdale → Bourke
+    [0,           LONSDALE_Y + ROAD_W/2, WILLIAM_X - ROAD_W/2,                    BOURKE_Y - LONSDALE_Y - ROAD_W],
+    [WILLIAM_X + ROAD_W/2, LONSDALE_Y + ROAD_W/2, QUEEN_X - WILLIAM_X - ROAD_W,   BOURKE_Y - LONSDALE_Y - ROAD_W],
+    [QUEEN_X + ROAD_W/2,   LONSDALE_Y + ROAD_W/2, ELIZABETH_X - QUEEN_X - ROAD_W, BOURKE_Y - LONSDALE_Y - ROAD_W],
+    [ELIZABETH_X + ROAD_W/2, LONSDALE_Y + ROAD_W/2, SVG_W - ELIZABETH_X - ROAD_W/2, BOURKE_Y - LONSDALE_Y - ROAD_W],
+    // Row 3: Bourke → Collins
+    [0,           BOURKE_Y + ROAD_W/2, WILLIAM_X - ROAD_W/2,                    COLLINS_Y - BOURKE_Y - ROAD_W],
+    [WILLIAM_X + ROAD_W/2, BOURKE_Y + ROAD_W/2, QUEEN_X - WILLIAM_X - ROAD_W,   COLLINS_Y - BOURKE_Y - ROAD_W],
+    [QUEEN_X + ROAD_W/2,   BOURKE_Y + ROAD_W/2, ELIZABETH_X - QUEEN_X - ROAD_W, COLLINS_Y - BOURKE_Y - ROAD_W],
+    [ELIZABETH_X + ROAD_W/2, BOURKE_Y + ROAD_W/2, SVG_W - ELIZABETH_X - ROAD_W/2, COLLINS_Y - BOURKE_Y - ROAD_W],
+    // Row 4: south of Collins
+    [0,           COLLINS_Y + ROAD_W/2, WILLIAM_X - ROAD_W/2,                    SVG_H - COLLINS_Y - ROAD_W/2],
+    [WILLIAM_X + ROAD_W/2, COLLINS_Y + ROAD_W/2, QUEEN_X - WILLIAM_X - ROAD_W,   SVG_H - COLLINS_Y - ROAD_W/2],
+    [QUEEN_X + ROAD_W/2,   COLLINS_Y + ROAD_W/2, ELIZABETH_X - QUEEN_X - ROAD_W, SVG_H - COLLINS_Y - ROAD_W/2],
+    [ELIZABETH_X + ROAD_W/2, COLLINS_Y + ROAD_W/2, SVG_W - ELIZABETH_X - ROAD_W/2, SVG_H - COLLINS_Y - ROAD_W/2],
+  ];
 
   return (
     <View style={styles.container}>
       {/* ── Map SVG ── */}
-      <Svg width={SCREEN_W} height={SCREEN_W * 1.84} viewBox={`0 0 402 740`} preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
+      <Svg
+        width={SCREEN_W}
+        height={SCREEN_W * 1.84}
+        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+        preserveAspectRatio="xMidYMid slice"
+        style={StyleSheet.absoluteFill}
+      >
         {/* Base */}
-        <Rect width={402} height={740} fill={T.dark ? '#181210' : '#EEE8E0'} />
+        <Rect width={SVG_W} height={SVG_H} fill={T.dark ? '#181210' : '#EEE8E0'} />
 
         {/* City blocks */}
-        {[[60,80,82,60],[162,60,102,80],[280,80,102,54],[38,180,122,90],[190,170,92,90],[300,160,92,100],[38,300,102,120],[168,290,112,120],[298,290,92,120],[38,450,122,90],[180,440,92,90],[298,440,92,80]].map(([x,y,w,h],i) => (
-          <Rect key={i} x={x} y={y} width={w} height={h} rx={5} fill={T.dark ? '#201810' : '#E4DDD4'} opacity={0.75} />
+        {blocks.map(([x, y, w, h], i) => (
+          <Rect key={i} x={x} y={y} width={w} height={h} rx={4} fill={blockFill} opacity={0.8} />
         ))}
 
-        {/* Roads */}
-        <Rect x={0} y={152} width={402} height={20} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={0} y={272} width={402} height={16} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={0} y={432} width={402} height={14} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={0} y={558} width={402} height={18} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={28} y={0} width={20} height={740} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={154} y={0} width={14} height={740} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
-        <Rect x={284} y={0} width={14} height={740} fill={T.dark ? '#2A1E14' : '#D0C8BE'} />
+        {/* EW roads */}
+        <Rect x={0} y={LA_TROBE_Y - ROAD_W/2}  width={SVG_W} height={ROAD_W} fill={roadFill} />
+        <Rect x={0} y={LONSDALE_Y - ROAD_W/2}  width={SVG_W} height={ROAD_W} fill={roadFill} />
+        <Rect x={0} y={BOURKE_Y   - ROAD_W/2}  width={SVG_W} height={ROAD_W} fill={roadFill} />
+        <Rect x={0} y={COLLINS_Y  - ROAD_W/2}  width={SVG_W} height={ROAD_W} fill={roadFill} />
 
-        {/* Road labels */}
-        <SvgText x={76} y={148} fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular" fontWeight={500}>Flinders St</SvgText>
-        <SvgText x={76} y={268} fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular" fontWeight={500}>Collins St</SvgText>
+        {/* NS roads */}
+        <Rect x={WILLIAM_X   - ROAD_W/2} y={0} width={ROAD_W} height={SVG_H} fill={roadFill} />
+        <Rect x={QUEEN_X     - ROAD_W/2} y={0} width={ROAD_W} height={SVG_H} fill={roadFill} />
+        <Rect x={ELIZABETH_X - ROAD_W/2} y={0} width={ROAD_W} height={SVG_H} fill={roadFill} />
 
-        {/* Park */}
-        <Rect x={30} y={153} width={116} height={18} fill={T.dark ? '#162010' : '#C8DCC0'} opacity={0.5} />
-        <SvgText x={58} y={165} fontSize={7} fill="#4A9E6A" fontFamily="DMSans_400Regular">Flagstaff Gardens</SvgText>
+        {/* Road labels (EW) */}
+        <SvgText x={10} y={LA_TROBE_Y - 3}  fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular">La Trobe St</SvgText>
+        <SvgText x={10} y={LONSDALE_Y - 3}  fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular">Lonsdale St</SvgText>
+        <SvgText x={10} y={BOURKE_Y   - 3}  fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular">Bourke St</SvgText>
+        <SvgText x={10} y={COLLINS_Y  - 3}  fontSize={7} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular">Collins St</SvgText>
+
+        {/* Road labels (NS) */}
+        <SvgText x={WILLIAM_X   + 2} y={20} fontSize={6} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular" rotation={90} originX={WILLIAM_X + 2} originY={20}>William St</SvgText>
+        <SvgText x={QUEEN_X     + 2} y={20} fontSize={6} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular" rotation={90} originX={QUEEN_X + 2} originY={20}>Queen St</SvgText>
+        <SvgText x={ELIZABETH_X + 2} y={20} fontSize={6} fill={T.dark ? '#7A6858' : '#A09080'} fontFamily="DMSans_400Regular" rotation={90} originX={ELIZABETH_X + 2} originY={20}>Elizabeth St</SvgText>
 
         {/* Heatmap rings */}
-        {heatmap && CAFES.map((c) => {
-          const cx = (c.mapX / 100) * 402;
-          const cy = (c.mapY / 100) * 600 + 60;
-          const col = heatColor(c.heat);
+        {heatmap && cafes.map((c) => {
+          if (!c.lat || !c.lng) return null;
+          const { x, y } = latLngToSvg(c.lat, c.lng);
+          const heat = busynessHeat(c.busyness);
+          const col = heatColor(heat);
           return (
             <G key={c.id + 'h'}>
-              <Circle cx={cx} cy={cy} r={52} fill={col} opacity={0.12} />
-              <Circle cx={cx} cy={cy} r={26} fill={col} opacity={0.18} />
+              <Circle cx={x} cy={y} r={52} fill={col} opacity={0.12} />
+              <Circle cx={x} cy={y} r={26} fill={col} opacity={0.18} />
             </G>
           );
         })}
 
         {/* Pins */}
-        {CAFES.map((c) => {
-          const cx = (c.mapX / 100) * 402;
-          const cy = (c.mapY / 100) * 600 + 60;
+        {cafes.map((c) => {
+          if (!c.lat || !c.lng) return null;
+          const { x, y } = latLngToSvg(c.lat, c.lng);
           const isSel = sel?.id === c.id;
           return (
             <G key={c.id} onPress={() => setSel(isSel ? null : c)}>
               <Circle
-                cx={cx} cy={cy}
+                cx={x} cy={y}
                 r={isSel ? 16 : 11}
                 fill={isSel ? T.primary : T.card}
                 stroke={T.primary}
                 strokeWidth={isSel ? 2 : 1.5}
               />
               <Circle
-                cx={cx} cy={cy}
+                cx={x} cy={y}
                 r={isSel ? 5 : 4}
                 fill={isSel ? '#fff' : T.primary}
               />
@@ -107,7 +176,7 @@ export default function MapScreen({ navigation }) {
       {/* ── Top bar ── */}
       <View style={[styles.topBar, { top: insets.top + 10 }]}>
         <View style={[styles.mapTitle, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.mapTitleText, { color: T.text }]}>Map</Text>
+          <Text style={[styles.mapTitleText, { color: T.text }]}>Melbourne CBD</Text>
         </View>
         <TouchableOpacity
           onPress={() => setHeatmap((h) => !h)}
@@ -128,9 +197,9 @@ export default function MapScreen({ navigation }) {
       {/* ── Legend ── */}
       {heatmap && (
         <View style={[styles.legend, { top: insets.top + 60, backgroundColor: T.card, borderColor: T.border }]}>
-          {[['Quiet', '#10B981'], ['Moderate', '#F59E0B'], ['Busy', '#EF4444']].map(([l, c]) => (
+          {[['Quiet', '#10B981'], ['Moderate', '#F59E0B'], ['Busy', '#EF4444']].map(([l, col]) => (
             <View key={l} style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: c }]} />
+              <View style={[styles.legendDot, { backgroundColor: col }]} />
               <Text style={[styles.legendLabel, { color: T.text }]}>{l}</Text>
             </View>
           ))}
@@ -144,14 +213,14 @@ export default function MapScreen({ navigation }) {
           <View style={styles.sheetHeader}>
             <View style={styles.flex}>
               <Text style={[styles.sheetName, { color: T.text }]}>{sel.name}</Text>
-              <Text style={[styles.sheetSub, { color: T.sub }]}>{sel.suburb} · {sel.distance}</Text>
+              <Text style={[styles.sheetSub, { color: T.sub }]}>{sel.suburb}</Text>
             </View>
             <BusynessChip level={sel.busyness} />
           </View>
-          <SeatBar avail={sel.seatsAvail} total={sel.seatsTotal} T={T} />
+          <SeatBar avail={sel.seats_avail} total={sel.seats_total} T={T} />
           <View style={[styles.btnRow, { marginTop: 14 }]}>
             <TouchableOpacity
-              onPress={() => goToCafe(sel)}
+              onPress={() => navigation.navigate('CafeProfile', { cafe: sel })}
               style={[styles.viewBtn, { backgroundColor: T.primary }]}
             >
               <Text style={styles.viewBtnText}>View Café</Text>
@@ -172,7 +241,6 @@ export default function MapScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Top bar
   topBar: {
     position: 'absolute',
     left: 14,
@@ -194,7 +262,7 @@ const styles = StyleSheet.create({
   },
   mapTitleText: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 17,
+    fontSize: 15,
   },
   heatBtn: {
     borderRadius: 8,
@@ -211,7 +279,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Legend
   legend: {
     position: 'absolute',
     right: 14,
@@ -230,7 +297,6 @@ const styles = StyleSheet.create({
   legendDot: { width: 7, height: 7, borderRadius: 3.5 },
   legendLabel: { fontFamily: 'DMSans_400Regular', fontSize: 10 },
 
-  // Bottom sheet
   sheet: {
     position: 'absolute',
     bottom: 0,
@@ -263,6 +329,7 @@ const styles = StyleSheet.create({
   },
   sheetName: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 18 },
   sheetSub: { fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
+  flex: { flex: 1 },
   btnRow: { flexDirection: 'row', gap: 8 },
   viewBtn: {
     flex: 1,
