@@ -25,13 +25,16 @@ import MapScreen from '../screens/MapScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import CafeProfileScreen from '../screens/CafeProfileScreen';
 import ReviewsScreen from '../screens/ReviewsScreen';
+import { ProfileProvider } from '../context/ProfileContext';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const MapStack = createNativeStackNavigator();
 const SearchStack = createNativeStackNavigator();
+const ProfileStack = createNativeStackNavigator();
 
 // ─── Stacks (tabs that support drilling into CafeProfile / Reviews) ──
 
@@ -63,6 +66,17 @@ function SearchStackNavigator() {
       <SearchStack.Screen name="CafeProfile" component={CafeProfileScreen} />
       <SearchStack.Screen name="Reviews" component={ReviewsScreen} />
     </SearchStack.Navigator>
+  );
+}
+
+function ProfileStackNavigator() {
+  return (
+    <ProfileProvider>
+      <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+        <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+        <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      </ProfileStack.Navigator>
+    </ProfileProvider>
   );
 }
 
@@ -118,7 +132,7 @@ function LorinaTabNavigator() {
       <Tab.Screen name="Map"     component={MapStackNavigator} />
       <Tab.Screen name="Live"    component={CommunityScreen} />
       <Tab.Screen name="Search"  component={SearchStackNavigator} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileStackNavigator} />
     </Tab.Navigator>
   );
 }

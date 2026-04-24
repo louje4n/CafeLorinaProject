@@ -1,24 +1,12 @@
-/**
- * ProfileScreen
- *
- * Shows user stats, badges, and saved cafes.
- * Includes a live theme switcher (Oat / Parchment / Dusk / Dark mode)
- * that updates the whole app instantly via ThemeContext.
- *
- * Safe area: profile header paddingTop uses insets.top.
- */
 import React from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
+  View, Text, ScrollView, TouchableOpacity,
+  Image, StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useProfile } from '../context/ProfileContext';
 import { Stars } from '../components/SharedUI';
-import { THEMES } from '../data/themes';
 import { useCafes } from '../hooks/useCafes';
 
 const STATS = [
@@ -27,60 +15,50 @@ const STATS = [
   { label: 'Followers', value: '184' },
 ];
 
-export default function ProfileScreen() {
-  const { T, themeId, dark, toggleDark, selectTheme } = useTheme();
+export default function ProfileScreen({ navigation }) {
+  const { T } = useTheme();
   const insets = useSafeAreaInsets();
+  const { name, handle, bio, avatarUri, badges } = useProfile();
   const { cafes } = useCafes();
-
-  const badges = [
-    { label: 'Study Regular', color: T.primary },
-    { label: 'Matcha Fan',    color: '#4A9E6A' },
-    { label: 'Early Riser',  color: '#C0882A' },
-    { label: 'Café Hopper',  color: T.secondary },
-  ];
 
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: T.bg }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Profile header card ── */}
-      <View
-        style={[
-          styles.profileHeader,
-          {
-            backgroundColor: T.card,
-            borderBottomColor: T.border,
-            paddingTop: insets.top + 16,
-          },
-        ]}
-      >
+      {/* ── Header ────────────────────────────────────────────── */}
+      <View style={[
+        styles.header,
+        { backgroundColor: T.card, borderBottomColor: T.border, paddingTop: insets.top + 16 },
+      ]}>
         <View style={styles.profileRow}>
           {/* Avatar */}
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: T.surf, borderColor: T.border },
-            ]}
-          >
-            <Text style={[styles.avatarText, { color: T.primary }]}>S</Text>
-          </View>
-          {/* Name / handle */}
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: T.surf, borderColor: T.border }]}>
+              <Text style={[styles.avatarText, { color: T.primary }]}>
+                {name?.[0] ?? 'U'}
+              </Text>
+            </View>
+          )}
+
+          {/* Name + handle */}
           <View style={styles.flex}>
-            <Text style={[styles.profileName, { color: T.text }]}>Sofia R.</Text>
-            <Text style={[styles.profileHandle, { color: T.sub }]}>
-              @sofiaR · UTS Sydney
-            </Text>
+            <Text style={[styles.profileName, { color: T.text }]}>{name}</Text>
+            <Text style={[styles.profileHandle, { color: T.sub }]}>{handle}</Text>
           </View>
-          {/* Edit button */}
+
+          {/* Edit */}
           <TouchableOpacity
+            onPress={() => navigation.navigate('EditProfile')}
             style={[styles.editBtn, { borderColor: T.border }]}
           >
             <Text style={[styles.editBtnText, { color: T.text }]}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stats row */}
+        {/* Stats */}
         <View style={[styles.statsRow, { borderTopColor: T.border }]}>
           {STATS.map((s, i) => (
             <View
@@ -97,66 +75,37 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* ── Body ── */}
+      {/* ── Body ──────────────────────────────────────────────── */}
       <View style={styles.body}>
 
-        {/* ── Theme switcher ── */}
-        <Text style={[styles.sectionLabel, { color: T.sub }]}>Appearance</Text>
-        <View style={[styles.themeCard, { backgroundColor: T.card, borderColor: T.border }]}>
-          <View style={styles.themeRow}>
-            {[1, 2, 3].map((id) => {
-              const t = THEMES[id];
-              const sel = themeId === id && !dark;
-              return (
-                <TouchableOpacity
-                  key={id}
-                  onPress={() => { selectTheme(id); if (dark) toggleDark(); }}
-                  style={[
-                    styles.themePill,
-                    {
-                      borderColor: sel ? T.primary : T.border,
-                      backgroundColor: sel ? T.primary + '20' : T.surf,
-                    },
-                  ]}
-                >
-                  <View style={[styles.themeColorDot, { backgroundColor: t.primary }]} />
-                  <Text style={[styles.themeName, { color: sel ? T.primary : T.sub }]}>{t.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity
-              onPress={toggleDark}
-              style={[
-                styles.themePill,
-                {
-                  borderColor: dark ? T.primary : T.border,
-                  backgroundColor: dark ? T.primary + '20' : T.surf,
-                },
-              ]}
-            >
-              <Text style={{ fontSize: 12 }}>🌙</Text>
-              <Text style={[styles.themeName, { color: dark ? T.primary : T.sub }]}>Dark</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ── Badges ── */}
-        <Text style={[styles.sectionLabel, { color: T.sub }]}>Badges</Text>
-        <View style={styles.badgesRow}>
-          {badges.map((b) => (
-            <View
-              key={b.label}
-              style={[
-                styles.badge,
-                { backgroundColor: b.color + '14', borderColor: b.color + '28' },
-              ]}
-            >
-              <Text style={[styles.badgeText, { color: b.color }]}>{b.label}</Text>
+        {/* Bio */}
+        {bio ? (
+          <>
+            <Text style={[styles.sectionLabel, { color: T.sub }]}>Bio</Text>
+            <View style={[styles.bioCard, { backgroundColor: T.card, borderColor: T.border }]}>
+              <Text style={[styles.bioText, { color: T.text }]}>{bio}</Text>
             </View>
-          ))}
-        </View>
+          </>
+        ) : null}
 
-        {/* ── Saved Cafés ── */}
+        {/* Badges */}
+        {badges.length > 0 && (
+          <>
+            <Text style={[styles.sectionLabel, { color: T.sub }]}>Badges</Text>
+            <View style={styles.badgesRow}>
+              {badges.map((b) => (
+                <View
+                  key={b.id}
+                  style={[styles.badge, { backgroundColor: b.color + '14', borderColor: b.color + '30' }]}
+                >
+                  <Text style={[styles.badgeText, { color: b.color }]}>{b.label}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Saved Cafés */}
         <Text style={[styles.sectionLabel, { color: T.sub }]}>Saved Cafés</Text>
         {cafes.slice(0, 3).map((c) => (
           <View
@@ -181,7 +130,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
 
-  profileHeader: {
+  header: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -196,6 +145,8 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
+  },
+  avatarFallback: {
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -248,7 +199,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-
   sectionLabel: {
     fontFamily: 'DMSans_700Bold',
     fontSize: 10,
@@ -258,38 +208,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Theme switcher
-  themeCard: {
+  bioCard: {
     borderRadius: 10,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
     marginBottom: 20,
   },
-  themeRow: {
-    flexDirection: 'row',
-    gap: 7,
-    flexWrap: 'wrap',
-  },
-  themePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  themeColorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  themeName: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 11,
+  bioText: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    lineHeight: 20,
   },
 
-  // Badges
   badgesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -307,7 +237,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Saved cafés
   savedCard: {
     borderRadius: 10,
     borderWidth: 1,

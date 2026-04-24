@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { LorinaLogo } from '../components/Icons';
 import { BusynessChip, Stars, SeatBar } from '../components/SharedUI';
 import { useCafes } from '../hooks/useCafes';
+import { useLocation } from '../hooks/useLocation';
 
 export default function HomeScreen({ navigation }) {
   const { T } = useTheme();
@@ -29,6 +30,7 @@ export default function HomeScreen({ navigation }) {
   const [tab, setTab] = useState('nearby');
   const [popIdx, setPopIdx] = useState(0);
   const { cafes, loading } = useCafes();
+  const { city, state: locState } = useLocation();
 
   function goToCafe(cafe) {
     navigation.navigate('CafeProfile', { cafe });
@@ -152,8 +154,10 @@ export default function HomeScreen({ navigation }) {
         ]}
       >
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: T.text }]}>Sydney, NSW</Text>
-          <Text style={[styles.headerSub, { color: T.sub }]}>Cafés near you</Text>
+          <Text style={[styles.headerTitle, { color: T.text }]}>
+            {city ? `${city}${locState ? `, ${locState}` : ''}` : 'Cafés near you'}
+          </Text>
+          {city && <Text style={[styles.headerSub, { color: T.sub }]}>Cafés near you</Text>}
         </View>
         <LorinaLogo size={30} color={T.primary} />
       </View>
