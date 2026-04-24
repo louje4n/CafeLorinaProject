@@ -148,6 +148,16 @@ export default function CafeProfileScreen({ route, navigation }) {
           </View>
         ))}
 
+        {/* Live Vibe Check */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('LiveChat', { cafe: c })}
+          style={[styles.liveBtn, { backgroundColor: T.surf, borderColor: T.border }]}
+        >
+          <View style={styles.liveDot} />
+          <Text style={[styles.liveBtnText, { color: T.text }]}>Join Live Vibe Check</Text>
+          <Text style={[styles.liveBtnSub, { color: T.sub }]}>Chat · expires in 15 min</Text>
+        </TouchableOpacity>
+
         {/* Actions */}
         <View style={[styles.actionsRow, { marginTop: 8, marginBottom: insets.bottom + 16 }]}>
           <TouchableOpacity
@@ -303,6 +313,34 @@ const styles = StyleSheet.create({
   starsTime: { flexDirection: 'row', gap: 5, alignItems: 'center' },
   reviewTime: { fontFamily: 'DMSans_400Regular', fontSize: 10 },
   reviewText: { fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 19 },
+
+  liveBtn: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E05252',
+    flexShrink: 0,
+  },
+  liveBtnText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 13,
+    flex: 1,
+  },
+  liveBtnSub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 10,
+  },
 
   actionsRow: { flexDirection: 'row', gap: 8 },
   actionOutline: {

@@ -28,6 +28,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import CafeProfileScreen from '../screens/CafeProfileScreen';
 import ReviewsScreen from '../screens/ReviewsScreen';
+import LiveChatScreen from '../screens/LiveChatScreen';
 import { ProfileProvider } from '../context/ProfileContext';
 
 const Tab = createBottomTabNavigator();
@@ -44,6 +45,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
       <HomeStack.Screen name="CafeProfile" component={CafeProfileScreen} />
       <HomeStack.Screen name="Reviews" component={ReviewsScreen} />
+      <HomeStack.Screen name="LiveChat" component={LiveChatScreen} />
       <HomeStack.Screen name="Community" component={CommunityScreen} />
     </HomeStack.Navigator>
   );
@@ -55,6 +57,7 @@ function MapStackNavigator() {
       <MapStack.Screen name="MapMain" component={MapScreen} />
       <MapStack.Screen name="CafeProfile" component={CafeProfileScreen} />
       <MapStack.Screen name="Reviews" component={ReviewsScreen} />
+      <MapStack.Screen name="LiveChat" component={LiveChatScreen} />
     </MapStack.Navigator>
   );
 }
@@ -65,6 +68,7 @@ function SearchStackNavigator() {
       <SearchStack.Screen name="SearchMain" component={SearchScreen} />
       <SearchStack.Screen name="CafeProfile" component={CafeProfileScreen} />
       <SearchStack.Screen name="Reviews" component={ReviewsScreen} />
+      <SearchStack.Screen name="LiveChat" component={LiveChatScreen} />
     </SearchStack.Navigator>
   );
 }

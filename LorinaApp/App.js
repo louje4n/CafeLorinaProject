@@ -19,6 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Google Fonts — DM Sans variants
 import {
@@ -38,6 +39,8 @@ import {
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
+
+const queryClient = new QueryClient();
 
 // ─── Inner app — wrapped in theme context so StatusBar reads T ────
 function InnerApp() {
@@ -73,11 +76,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <InnerApp />
-          </ThemeProvider>
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemeProvider>
+              <InnerApp />
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
