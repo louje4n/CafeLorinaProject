@@ -16,15 +16,25 @@ export async function fetchLiveMessages(cafeId) {
 }
 
 export async function sendMessage({ cafeId, userId, message, photoUri }) {
+  const resolvedUserId = await resolveUserId(userId);
   let photo_url = null;
 
   if (photoUri) {
-    photo_url = await uploadChatPhoto(userId, photoUri);
+    photo_url = await uploadChatPhoto(resolvedUserId, photoUri);
+  }
+
+  const insertPayload = {
+    cafe_id: cafeId,
+    message: message || null,
+    photo_url,
+  };
+  if (resolvedUserId) {
+    insertPayload.user_id = resolvedUserId;
   }
 
   const { data, error } = await supabase
     .from('cafe_live_chats')
-    .insert({ cafe_id: cafeId, user_id: userId, message: message || null, photo_url })
+    .insert(insertPayload)
     .select('id, cafe_id, user_id, message, photo_url, created_at, profiles(display_name, avatar_url)')
     .single();
 
@@ -33,15 +43,29 @@ export async function sendMessage({ cafeId, userId, message, photoUri }) {
 }
 
 export async function uploadChatPhoto(userId, uri) {
-  const filename = `${userId}/${Date.now()}.jpg`;
-  const formData = new FormData();
-  formData.append('file', { uri, name: filename, type: 'image/jpeg' });
+  const owner = userId || 'anon';
+  const filename = `${owner}/${Date.now()}.jpg`;
+  const response = await fetch(uri);
+  const arrayBuffer = await response.arrayBuffer();
 
-  const { error } = await supabase.storage.from(BUCKET).upload(filename, formData, { upsert: true });
+  const { error } = await supabase.storage.from(BUCKET).upload(filename, arrayBuffer, {
+    upsert: true,
+    contentType: 'image/jpeg',
+    cacheControl: '3600',
+  });
   if (error) throw error;
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(filename);
   return data.publicUrl;
+}
+
+async function resolveUserId(candidateUserId) {
+  if (candidateUserId && candidateUserId !== 'anon-local') {
+    return candidateUserId;
+  }
+  const { data, error } = await supabase.auth.getUser();
+  if (error) return null;
+  return data?.user?.id || null;
 }
 
 function normalizeMsg(row) {

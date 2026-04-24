@@ -31,6 +31,18 @@ export default function ProfileScreen({ navigation }) {
         styles.header,
         { backgroundColor: T.card, borderBottomColor: T.border, paddingTop: insets.top + 16 },
       ]}>
+        <TouchableOpacity
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+          style={[styles.backBtn, { borderColor: T.border, backgroundColor: T.surf }]}
+        >
+          <Text style={[styles.backBtnText, { color: T.text }]}>← Back</Text>
+        </TouchableOpacity>
         <View style={styles.profileRow}>
           {/* Avatar */}
           {avatarUri ? (
@@ -140,6 +152,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     marginBottom: 18,
+  },
+  backBtn: {
+    alignSelf: 'flex-start',
+    borderRadius: 7,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 12,
+  },
+  backBtnText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
   },
   avatar: {
     width: 62,

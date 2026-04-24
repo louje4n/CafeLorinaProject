@@ -21,11 +21,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { BusynessChip, Stars, Avi, SeatBar, Tag } from '../components/SharedUI';
 import { useReviews } from '../hooks/useReviews';
 
 export default function CafeProfileScreen({ route, navigation }) {
   const { T } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const c = route?.params?.cafe;
   const { reviews } = useReviews(c?.id);
@@ -39,6 +41,14 @@ export default function CafeProfileScreen({ route, navigation }) {
     { label: 'Opening hours', value: c.hours },
     { label: 'Price range',   value: c.price },
   ];
+
+  function requireAuth(next) {
+    if (user) {
+      next();
+      return;
+    }
+    navigation.navigate('Welcome');
+  }
 
   return (
     <View style={[styles.flex, { backgroundColor: T.bg }]}>
@@ -125,7 +135,7 @@ export default function CafeProfileScreen({ route, navigation }) {
         {/* Reviews section */}
         <View style={[styles.reviewsHeader, { marginBottom: 10 }]}>
           <Text style={[styles.reviewsLabel, { color: T.sub }]}>Reviews</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Reviews', { cafe: c })}>
+          <TouchableOpacity onPress={() => requireAuth(() => navigation.navigate('Reviews', { cafe: c }))}>
             <Text style={[styles.seeAllText, { color: T.primary }]}>See all</Text>
           </TouchableOpacity>
         </View>
@@ -161,13 +171,13 @@ export default function CafeProfileScreen({ route, navigation }) {
         {/* Actions */}
         <View style={[styles.actionsRow, { marginTop: 8, marginBottom: insets.bottom + 16 }]}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Community')}
+            onPress={() => requireAuth(() => navigation.navigate('Community'))}
             style={[styles.actionOutline, { borderColor: T.border }]}
           >
             <Text style={[styles.actionOutlineText, { color: T.text }]}>Check In</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Reviews', { cafe: c })}
+            onPress={() => requireAuth(() => navigation.navigate('Reviews', { cafe: c }))}
             style={[styles.actionPrimary, { backgroundColor: T.primary }]}
           >
             <Text style={styles.actionPrimaryText}>Write Review</Text>

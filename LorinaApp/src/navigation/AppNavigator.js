@@ -16,8 +16,10 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator, View } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { HomeIco, MapIco, CommIco, SearchIco, ProfileIco } from '../components/Icons';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -30,8 +32,12 @@ import CafeProfileScreen from '../screens/CafeProfileScreen';
 import ReviewsScreen from '../screens/ReviewsScreen';
 import LiveChatScreen from '../screens/LiveChatScreen';
 import { ProfileProvider } from '../context/ProfileContext';
+import WelcomeScreen from '../screens/WelcomeScreen';
+import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
 
 const Tab = createBottomTabNavigator();
+const RootStack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 const MapStack = createNativeStackNavigator();
 const SearchStack = createNativeStackNavigator();
@@ -102,6 +108,7 @@ function TabIcon({ name, focused, color }) {
 
 function LorinaTabNavigator() {
   const { T } = useTheme();
+  const { user } = useAuth();
 
   return (
     <Tab.Navigator
@@ -136,7 +143,17 @@ function LorinaTabNavigator() {
       <Tab.Screen name="Map"     component={MapStackNavigator} />
       <Tab.Screen name="Live"    component={CommunityScreen} />
       <Tab.Screen name="Search"  component={SearchStackNavigator} />
-      <Tab.Screen name="Profile" component={ProfileStackNavigator} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (user) return;
+            e.preventDefault();
+            navigation.navigate('Welcome');
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }
@@ -145,6 +162,16 @@ function LorinaTabNavigator() {
 
 export default function AppNavigator() {
   const { T } = useTheme();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg }}>
+        <ActivityIndicator color={T.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer
       theme={{
@@ -166,7 +193,21 @@ export default function AppNavigator() {
         },
       }}
     >
-      <LorinaTabNavigator />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="MainTabs" component={LorinaTabNavigator} />
+        <RootStack.Group
+          screenOptions={{
+            presentation: 'card',
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        >
+          <RootStack.Screen name="Welcome" component={WelcomeScreen} />
+          <RootStack.Screen name="Login" component={LoginScreen} />
+          <RootStack.Screen name="Signup" component={SignupScreen} />
+        </RootStack.Group>
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

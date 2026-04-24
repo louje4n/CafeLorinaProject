@@ -19,16 +19,37 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { Avi, Stars } from '../components/SharedUI';
 import { HeartIco } from '../components/Icons';
 import { useReviews } from '../hooks/useReviews';
 
 export default function ReviewsScreen({ route, navigation }) {
   const { T } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const c = route?.params?.cafe;
   const { reviews } = useReviews(c?.id);
   if (!c) return null;
+
+  if (!user) {
+    return (
+      <View style={[styles.flex, { backgroundColor: T.bg, paddingTop: insets.top + 20, paddingHorizontal: 22 }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={[styles.backArrow, { color: T.text }]}>←</Text>
+        </TouchableOpacity>
+        <View style={[styles.lockCard, { backgroundColor: T.card, borderColor: T.border }]}>
+          <Text style={[styles.lockTitle, { color: T.text }]}>Sign in to view reviews</Text>
+          <Text style={[styles.lockSub, { color: T.sub }]}>
+            Create an account to see community reviews and post your own cafe experiences.
+          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Welcome')} style={[styles.lockBtn, { backgroundColor: T.primary }]}>
+            <Text style={styles.lockBtnText}>Continue to sign in</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
   const avg = reviews.length > 0
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;
@@ -288,5 +309,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.2,
     marginTop: 8,
+  },
+  lockCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+  },
+  lockTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 21,
+    marginBottom: 6,
+  },
+  lockSub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  lockBtn: {
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
   },
 });

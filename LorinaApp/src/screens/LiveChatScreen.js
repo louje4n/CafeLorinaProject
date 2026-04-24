@@ -7,6 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../api/supabase';
 import { fetchLiveMessages, sendMessage } from '../api/liveChat';
 import { pickChatPhoto } from '../utils/imagePicker';
@@ -15,6 +16,7 @@ const ANON_USER_ID = 'anon-local';
 
 export default function LiveChatScreen({ route, navigation }) {
   const { T } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const cafe = route?.params?.cafe;
   const cafeId = cafe?.id;
@@ -24,11 +26,12 @@ export default function LiveChatScreen({ route, navigation }) {
   const [text, setText] = useState('');
   const [pendingPhoto, setPendingPhoto] = useState(null);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['live-chat', cafeId],
     queryFn: () => fetchLiveMessages(cafeId),
-    refetchInterval: 30_000,
+    refetchInterval: 15 * 60 * 1000,
     enabled: !!cafeId,
   });
 
@@ -70,23 +73,30 @@ export default function LiveChatScreen({ route, navigation }) {
   }, []);
 
   const handleSend = useCallback(async () => {
+    if (!user) {
+      setSendError('Please sign in to post updates.');
+      navigation.navigate('Welcome');
+      return;
+    }
     if ((!text.trim() && !pendingPhoto) || sending) return;
+    setSendError('');
     setSending(true);
     try {
       await sendMessage({
         cafeId,
-        userId: ANON_USER_ID,
+        userId: user.id,
         message: text.trim() || null,
         photoUri: pendingPhoto,
       });
       setText('');
       setPendingPhoto(null);
     } catch (e) {
+      setSendError(e.message);
       console.warn('Send failed:', e.message);
     } finally {
       setSending(false);
     }
-  }, [cafeId, text, pendingPhoto, sending]);
+  }, [cafeId, text, pendingPhoto, sending, user, navigation]);
 
   function formatTime(iso) {
     const d = new Date(iso);
@@ -211,6 +221,7 @@ export default function LiveChatScreen({ route, navigation }) {
           )}
         </TouchableOpacity>
       </View>
+      {sendError ? <Text style={styles.sendError}>{sendError}</Text> : null}
     </KeyboardAvoidingView>
   );
 }
@@ -367,5 +378,12 @@ const styles = StyleSheet.create({
   sendBtnText: {
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 13,
+  },
+  sendError: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11,
+    color: '#DC2626',
+    marginHorizontal: 12,
+    marginBottom: 8,
   },
 });
