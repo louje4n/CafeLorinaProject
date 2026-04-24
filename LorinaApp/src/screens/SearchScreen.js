@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { SearchIco } from '../components/Icons';
 import { BusynessChip, Stars } from '../components/SharedUI';
-import { CAFES } from '../data/cafes';
+import { useCafes } from '../hooks/useCafes';
 
 const FILTER_OPTS = [
   'WiFi', 'Power Outlets', 'Quiet', 'Study Friendly',
@@ -30,10 +30,11 @@ const FILTER_OPTS = [
 export default function SearchScreen({ navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
+  const { cafes } = useCafes();
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState([]);
 
-  const results = CAFES.filter(
+  const results = cafes.filter(
     (c) =>
       q === '' ||
       c.name.toLowerCase().includes(q.toLowerCase()) ||
@@ -140,7 +141,7 @@ export default function SearchScreen({ navigation }) {
                 <BusynessChip level={c.busyness} mini />
               </View>
               <Text style={[styles.resultMeta, { color: T.sub }]}>
-                {c.suburb} · {c.distance} · {c.price}
+                {c.suburb} · {c.price}
               </Text>
               <View style={styles.starsRow}>
                 <Stars rating={c.rating} size={10} />

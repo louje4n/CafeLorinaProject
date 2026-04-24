@@ -18,8 +18,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { Stars } from '../components/SharedUI';
-import { CAFES } from '../data/cafes';
 import { THEMES } from '../data/themes';
+import { useCafes } from '../hooks/useCafes';
 
 const STATS = [
   { label: 'Check-ins', value: '47' },
@@ -30,6 +30,7 @@ const STATS = [
 export default function ProfileScreen() {
   const { T, themeId, dark, toggleDark, selectTheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { cafes } = useCafes();
 
   const badges = [
     { label: 'Study Regular', color: T.primary },
@@ -157,7 +158,7 @@ export default function ProfileScreen() {
 
         {/* ── Saved Cafés ── */}
         <Text style={[styles.sectionLabel, { color: T.sub }]}>Saved Cafés</Text>
-        {CAFES.slice(0, 3).map((c) => (
+        {cafes.slice(0, 3).map((c) => (
           <View
             key={c.id}
             style={[styles.savedCard, { backgroundColor: T.card, borderColor: T.border }]}

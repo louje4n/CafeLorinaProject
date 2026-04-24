@@ -22,19 +22,20 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { BusynessChip, Stars, Avi, SeatBar, Tag } from '../components/SharedUI';
-import { REVIEWS, CAFES } from '../data/cafes';
+import { useReviews } from '../hooks/useReviews';
 
 export default function CafeProfileScreen({ route, navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
-  const cafe = route?.params?.cafe || CAFES[0];
-  const c = cafe;
-  const reviews = REVIEWS.filter((r) => r.cafeId === c.id);
+  const c = route?.params?.cafe;
+  const { reviews } = useReviews(c?.id);
+
+  if (!c) return null;
 
   const amenityRows = [
     { label: 'WiFi',          value: c.wifi  ? 'Available' : 'Not available' },
     { label: 'Power outlets', value: c.power ? 'Available' : 'Not available' },
-    { label: 'Study score',   value: `${c.studyScore} / 5` },
+    { label: 'Study score',   value: `${c.study_score} / 5` },
     { label: 'Opening hours', value: c.hours },
     { label: 'Price range',   value: c.price },
   ];
@@ -76,7 +77,7 @@ export default function CafeProfileScreen({ route, navigation }) {
         <View style={[styles.ratingRow, { marginBottom: 4 }]}>
           <Stars rating={c.rating} />
           <Text style={[styles.ratingValue, { color: T.text }]}>{c.rating}</Text>
-          <Text style={[styles.ratingCount, { color: T.sub }]}>({c.reviewCount} reviews)</Text>
+          <Text style={[styles.ratingCount, { color: T.sub }]}>({c.review_count} reviews)</Text>
         </View>
         <Text style={[styles.metaLine, { color: T.sub }]}>
           {c.suburb} · {c.price} · {c.hours}
@@ -91,7 +92,7 @@ export default function CafeProfileScreen({ route, navigation }) {
         {/* Live seats */}
         <View style={[styles.infoCard, { backgroundColor: T.card, borderColor: T.border, marginBottom: 12 }]}>
           <Text style={[styles.infoCardLabel, { color: T.sub }]}>Live Seat Availability</Text>
-          <SeatBar avail={c.seatsAvail} total={c.seatsTotal} T={T} />
+          <SeatBar avail={c.seats_avail} total={c.seats_total} T={T} />
           <Text style={[styles.infoCardNote, { color: T.sub }]}>
             Updated 3 min ago · community sourced
           </Text>

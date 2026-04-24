@@ -21,14 +21,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { Avi, Stars } from '../components/SharedUI';
 import { HeartIco } from '../components/Icons';
-import { REVIEWS, CAFES } from '../data/cafes';
+import { useReviews } from '../hooks/useReviews';
 
 export default function ReviewsScreen({ route, navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
-  const cafe = route?.params?.cafe || CAFES[0];
-  const c = cafe;
-  const reviews = REVIEWS.filter((r) => r.cafeId === c.id);
+  const c = route?.params?.cafe;
+  const { reviews } = useReviews(c?.id);
+  if (!c) return null;
   const avg = reviews.length > 0
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;

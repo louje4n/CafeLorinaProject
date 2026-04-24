@@ -14,19 +14,21 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { LorinaLogo } from '../components/Icons';
 import { BusynessChip, Stars, SeatBar } from '../components/SharedUI';
-import { CAFES } from '../data/cafes';
+import { useCafes } from '../hooks/useCafes';
 
 export default function HomeScreen({ navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('nearby');
   const [popIdx, setPopIdx] = useState(0);
+  const { cafes, loading } = useCafes();
 
   function goToCafe(cafe) {
     navigation.navigate('CafeProfile', { cafe });
@@ -34,7 +36,14 @@ export default function HomeScreen({ navigation }) {
 
   // ─── Trending (card swipe) view ───────────────────────────────
   if (tab === 'trending') {
-    const cafe = CAFES[popIdx % CAFES.length];
+    if (loading || cafes.length === 0) {
+      return (
+        <View style={[styles.flex, { backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' }]}>
+          <ActivityIndicator color={T.primary} />
+        </View>
+      );
+    }
+    const cafe = cafes[popIdx % cafes.length];
     return (
       <View style={[styles.flex, { backgroundColor: T.bg }]}>
         {/* Muted gradient wash */}
@@ -93,7 +102,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.flex}>
                 <Text style={[styles.cafeNameLg, { color: T.text }]}>{cafe.name}</Text>
                 <Text style={[styles.cafeMeta, { color: T.sub }]}>
-                  {cafe.suburb} · {cafe.distance} · {cafe.price}
+                  {cafe.suburb} · {cafe.price}
                 </Text>
               </View>
               <BusynessChip level={cafe.busyness} />
@@ -102,11 +111,11 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.starsRow, { marginBottom: 12 }]}>
               <Stars rating={cafe.rating} size={11} />
               <Text style={[styles.ratingText, { color: T.sub }]}>
-                {cafe.rating} ({cafe.reviewCount})
+                {cafe.rating} ({cafe.review_count})
               </Text>
             </View>
 
-            <SeatBar avail={cafe.seatsAvail} total={cafe.seatsTotal} T={T} />
+            <SeatBar avail={cafe.seats_avail} total={cafe.seats_total} T={T} />
 
             <View style={[styles.btnRow, { marginTop: 14 }]}>
               <TouchableOpacity
@@ -125,7 +134,7 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <Text style={[styles.paginationText, { color: T.sub }]}>
-            {(popIdx % CAFES.length) + 1} / {CAFES.length}
+            {(popIdx % cafes.length) + 1} / {cafes.length}
           </Text>
         </View>
       </View>
@@ -181,7 +190,9 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       >
-        {CAFES.map((c) => (
+        {loading ? (
+          <ActivityIndicator color={T.primary} style={{ marginTop: 40 }} />
+        ) : cafes.map((c) => (
           <TouchableOpacity
             key={c.id}
             onPress={() => goToCafe(c)}
@@ -221,7 +232,7 @@ export default function HomeScreen({ navigation }) {
 
               <View style={[styles.cafeCardRow, { marginBottom: 8 }]}>
                 <Text style={[styles.cafeCardMeta, { color: T.sub }]}>
-                  {c.suburb} · {c.distance} · {c.price}
+                  {c.suburb} · {c.price}
                 </Text>
                 <View style={styles.starsRow}>
                   <Stars rating={c.rating} size={10} />
@@ -229,7 +240,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </View>
 
-              <SeatBar avail={c.seatsAvail} total={c.seatsTotal} T={T} />
+              <SeatBar avail={c.seats_avail} total={c.seats_total} T={T} />
             </View>
           </TouchableOpacity>
         ))}

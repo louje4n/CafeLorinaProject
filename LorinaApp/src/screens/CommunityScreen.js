@@ -20,7 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { Avi, BusynessChip } from '../components/SharedUI';
 import { ThumbsUpIco } from '../components/Icons';
-import { CAFES, COMMUNITY_POSTS } from '../data/cafes';
+import { useCafes } from '../hooks/useCafes';
+import { useCommunityPosts } from '../hooks/useCommunityPosts';
 
 const BUSYNESS_OPTS = [
   { key: 'quiet',    label: 'Quiet',    sub: 'Plenty of seats', col: '#10B981' },
@@ -31,6 +32,8 @@ const BUSYNESS_OPTS = [
 export default function CommunityScreen() {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
+  const { cafes } = useCafes();
+  const { posts } = useCommunityPosts();
   const [selCafe, setSelCafe] = useState(null);
   const [busyness, setBusyness] = useState(null);
   const [posted, setPosted] = useState(false);
@@ -77,7 +80,7 @@ export default function CommunityScreen() {
             style={styles.cafeScroll}
             contentContainerStyle={styles.cafeScrollContent}
           >
-            {CAFES.map((c) => {
+            {cafes.map((c) => {
               const isSel = selCafe?.id === c.id;
               return (
                 <TouchableOpacity
@@ -166,7 +169,7 @@ export default function CommunityScreen() {
 
         {/* ── Feed ── */}
         <Text style={[styles.feedLabel, { color: T.sub }]}>Recent</Text>
-        {COMMUNITY_POSTS.map((p) => (
+        {posts.map((p) => (
           <View
             key={p.id}
             style={[styles.postCard, { backgroundColor: T.card, borderColor: T.border }]}
