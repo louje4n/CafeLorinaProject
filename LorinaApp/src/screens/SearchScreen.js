@@ -14,6 +14,7 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,7 +68,7 @@ const FILTER_FNS = {
 export default function SearchScreen({ navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
-  const { cafes } = useCafes();
+  const { cafes, refreshing, refetch } = useCafes();
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState([]);
 
@@ -159,41 +160,59 @@ export default function SearchScreen({ navigation }) {
         contentContainerStyle={styles.resultsList}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refetch} tintColor={T.primary} colors={[T.primary]} />
+        }
       >
         <Text style={[styles.resultsCount, { color: T.sub }]}>
           {results.length} {results.length === 1 ? 'result' : 'results'}
         </Text>
 
-        {results.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            onPress={() => goToCafe(c)}
-            activeOpacity={0.85}
-            style={[styles.resultCard, { backgroundColor: T.card, borderColor: T.border }]}
-          >
-            {/* Avatar / initial */}
-            <View style={[styles.resultAvatar, { backgroundColor: T.surf }]}>
-              <Text style={[styles.resultAvatarText, { color: T.sub }]}>{c.name[0]}</Text>
-            </View>
+        {results.length === 0 && (q !== '' || filters.length > 0) ? (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyTitle, { color: T.text }]}>No cafés match</Text>
+            <Text style={[styles.emptySub, { color: T.sub }]}>
+              Try a different search term or remove some filters.
+            </Text>
+            <TouchableOpacity
+              onPress={() => { setQ(''); setFilters([]); }}
+              style={[styles.clearBtn, { borderColor: T.border }]}
+            >
+              <Text style={[styles.clearBtnText, { color: T.primary }]}>Clear filters</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          results.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              onPress={() => goToCafe(c)}
+              activeOpacity={0.85}
+              style={[styles.resultCard, { backgroundColor: T.card, borderColor: T.border }]}
+            >
+              {/* Avatar / initial */}
+              <View style={[styles.resultAvatar, { backgroundColor: T.surf }]}>
+                <Text style={[styles.resultAvatarText, { color: T.sub }]}>{c.name[0]}</Text>
+              </View>
 
-            {/* Info */}
-            <View style={styles.flex}>
-              <View style={styles.resultRow}>
-                <Text style={[styles.resultName, { color: T.text }]} numberOfLines={1}>
-                  {c.name}
+              {/* Info */}
+              <View style={styles.flex}>
+                <View style={styles.resultRow}>
+                  <Text style={[styles.resultName, { color: T.text }]} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                  <BusynessChip level={c.busyness} mini />
+                </View>
+                <Text style={[styles.resultMeta, { color: T.sub }]}>
+                  {c.suburb} · {c.price}
                 </Text>
-                <BusynessChip level={c.busyness} mini />
+                <View style={styles.starsRow}>
+                  <Stars rating={c.rating} size={10} />
+                  <Text style={[styles.ratingText, { color: T.sub }]}>{c.rating}</Text>
+                </View>
               </View>
-              <Text style={[styles.resultMeta, { color: T.sub }]}>
-                {c.suburb} · {c.price}
-              </Text>
-              <View style={styles.starsRow}>
-                <Stars rating={c.rating} size={10} />
-                <Text style={[styles.ratingText, { color: T.sub }]}>{c.rating}</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -309,5 +328,35 @@ const styles = StyleSheet.create({
   ratingText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: 10,
+  },
+
+  // Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 48,
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  clearBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  clearBtnText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 13,
   },
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../api/supabase';
 
 function normalizeCafe(row) {
@@ -13,22 +13,37 @@ function normalizeCafe(row) {
   };
 }
 
+async function loadCafes() {
+  const { data, error } = await supabase.from('cafes').select('*').order('name');
+  if (error) throw error;
+  return (data || []).map(normalizeCafe);
+}
+
 export function useCafes() {
   const [cafes, setCafes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    supabase
-      .from('cafes')
-      .select('*')
-      .order('name')
-      .then(({ data, error: err }) => {
-        if (err) setError(err);
-        else setCafes((data || []).map(normalizeCafe));
-        setLoading(false);
-      });
+    loadCafes()
+      .then(setCafes)
+      .catch(setError)
+      .finally(() => setLoading(false));
   }, []);
 
-  return { cafes, loading, error };
+  const refetch = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await loadCafes();
+      setCafes(data);
+      setError(null);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  return { cafes, loading, refreshing, refetch, error };
 }

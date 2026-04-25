@@ -11,20 +11,40 @@
  *
  * Safe area: header band paddingTop uses insets.top.
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  Pressable,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { BusynessChip, Stars, Avi, SeatBar, Tag } from '../components/SharedUI';
+import { BusynessChip, Stars, Avi, BusynessBar, Tag } from '../components/SharedUI';
 import { useReviews } from '../hooks/useReviews';
 import { useSavedCafes } from '../hooks/useSavedCafes';
+import { supabase } from '../api/supabase';
+
+const BUSYNESS_OPTS = [
+  { key: 'quiet',    label: 'Quiet',    sub: 'Plenty of seats available', col: '#10B981' },
+  { key: 'moderate', label: 'Moderate', sub: 'Getting busier',             col: '#F59E0B' },
+  { key: 'busy',     label: 'Busy',     sub: 'Almost full',                col: '#EF4444' },
+];
+
+function formatUpdatedAt(iso) {
+  if (!iso) return null;
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 export default function CafeProfileScreen({ route, navigation }) {
   const { T } = useTheme();
@@ -34,6 +54,62 @@ export default function CafeProfileScreen({ route, navigation }) {
   const { reviews } = useReviews(c?.id);
   const { savedIds, toggleSave } = useSavedCafes(user?.id);
   const isSaved = c ? savedIds.has(c.id) : false;
+
+  // Check-in modal state
+  const [checkInVisible, setCheckInVisible] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [localBusyness, setLocalBusyness] = useState(c?.busyness || 'quiet');
+  const [busynessUpdatedAt, setBusynessUpdatedAt] = useState(null);
+
+  // Load real busyness_updated_at from DB
+  useEffect(() => {
+    if (!c?.id) return;
+    supabase
+      .from('cafes')
+      .select('busyness, busyness_updated_at')
+      .eq('id', c.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.busyness) setLocalBusyness(data.busyness);
+        if (data?.busyness_updated_at) setBusynessUpdatedAt(data.busyness_updated_at);
+      });
+  }, [c?.id]);
+
+  async function handleCheckIn(level) {
+    setCheckInVisible(false);
+    if (!user) { navigation.navigate('Welcome'); return; }
+    setCheckingIn(true);
+    const now = new Date().toISOString();
+    try {
+      const { error: cafeErr } = await supabase
+        .from('cafes')
+        .update({ busyness: level, busyness_updated_at: now })
+        .eq('id', c.id);
+      if (cafeErr) throw cafeErr;
+
+      // Increment check_in_count on profile
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('check_in_count')
+        .eq('id', user.id)
+        .single();
+      await supabase
+        .from('profiles')
+        .update({ check_in_count: (prof?.check_in_count || 0) + 1 })
+        .eq('id', user.id);
+
+      setLocalBusyness(level);
+      setBusynessUpdatedAt(now);
+      Alert.alert(
+        'Checked in! ✓',
+        `Thanks for checking in at ${c.name}! Your update helps everyone find a great spot.`,
+      );
+    } catch {
+      Alert.alert('Error', 'Could not save your check-in. Please try again.');
+    } finally {
+      setCheckingIn(false);
+    }
+  }
 
   if (!c) return null;
 
@@ -85,10 +161,48 @@ export default function CafeProfileScreen({ route, navigation }) {
                 {isSaved ? '★' : '☆'}
               </Text>
             </TouchableOpacity>
-            <BusynessChip level={c.busyness} />
+            <BusynessChip level={localBusyness} />
           </View>
         </View>
       </View>
+
+      {/* ── Check-in busyness modal ── */}
+      <Modal
+        visible={checkInVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCheckInVisible(false)}
+      >
+        <Pressable
+          style={[ciStyles.overlay]}
+          onPress={() => setCheckInVisible(false)}
+        />
+        <View style={[ciStyles.sheet, { backgroundColor: T.card, borderColor: T.border }]}>
+          <Text style={[ciStyles.title, { color: T.text }]}>How busy is it?</Text>
+          <Text style={[ciStyles.sub, { color: T.sub }]}>
+            Your check-in updates the map for everyone nearby
+          </Text>
+          {BUSYNESS_OPTS.map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              onPress={() => handleCheckIn(opt.key)}
+              style={[ciStyles.option, { borderColor: opt.col, backgroundColor: opt.col + '14' }]}
+            >
+              <View style={[ciStyles.dot, { backgroundColor: opt.col }]} />
+              <View style={ciStyles.flex}>
+                <Text style={[ciStyles.optLabel, { color: opt.col }]}>{opt.label}</Text>
+                <Text style={[ciStyles.optSub, { color: T.sub }]}>{opt.sub}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            onPress={() => setCheckInVisible(false)}
+            style={[ciStyles.cancelBtn, { borderColor: T.border }]}
+          >
+            <Text style={[ciStyles.cancelText, { color: T.sub }]}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* ── Scrollable body ── */}
       <ScrollView
@@ -114,10 +228,12 @@ export default function CafeProfileScreen({ route, navigation }) {
 
         {/* Live seats */}
         <View style={[styles.infoCard, { backgroundColor: T.card, borderColor: T.border, marginBottom: 12 }]}>
-          <Text style={[styles.infoCardLabel, { color: T.sub }]}>Live Seat Availability</Text>
-          <SeatBar avail={c.seats_avail} total={c.seats_total} T={T} />
+          <Text style={[styles.infoCardLabel, { color: T.sub }]}>Current Vibe</Text>
+          <BusynessBar level={localBusyness} T={T} />
           <Text style={[styles.infoCardNote, { color: T.sub }]}>
-            Updated 3 min ago · community sourced
+            {busynessUpdatedAt
+              ? `Updated ${formatUpdatedAt(busynessUpdatedAt)} · community sourced`
+              : 'No check-ins yet · be the first!'}
           </Text>
         </View>
 
@@ -184,10 +300,13 @@ export default function CafeProfileScreen({ route, navigation }) {
         {/* Actions */}
         <View style={[styles.actionsRow, { marginTop: 8, marginBottom: insets.bottom + 16 }]}>
           <TouchableOpacity
-            onPress={() => requireAuth(() => navigation.navigate('Community'))}
-            style={[styles.actionOutline, { borderColor: T.border }]}
+            onPress={() => requireAuth(() => setCheckInVisible(true))}
+            disabled={checkingIn}
+            style={[styles.actionOutline, { borderColor: T.border, opacity: checkingIn ? 0.5 : 1 }]}
           >
-            <Text style={[styles.actionOutlineText, { color: T.text }]}>Check In</Text>
+            <Text style={[styles.actionOutlineText, { color: T.text }]}>
+              {checkingIn ? 'Checking in…' : 'Check In'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => requireAuth(() => navigation.navigate('Reviews', { cafe: c }))}
@@ -401,4 +520,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionPrimaryText: { fontFamily: 'DMSans_600SemiBold', fontSize: 12, color: '#fff' },
+});
+
+const ciStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
+    marginBottom: 6,
+  },
+  sub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  flex: { flex: 1 },
+  optLabel: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+  },
+  optSub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  cancelBtn: {
+    marginTop: 4,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 13,
+  },
 });

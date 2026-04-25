@@ -7,15 +7,16 @@
  *  - Toggleable busyness heatmap circles
  *  - Bottom sheet preview → CafeProfile
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { BusynessChip, SeatBar } from '../components/SharedUI';
+import { BusynessChip, BusynessBar } from '../components/SharedUI';
 import { useCafes } from '../hooks/useCafes';
+import { useLocation } from '../hooks/useLocation';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -58,16 +59,36 @@ export default function MapScreen({ navigation }) {
   const { T } = useTheme();
   const insets = useSafeAreaInsets();
   const { cafes } = useCafes();
+  const { coords } = useLocation();
   const mapRef = useRef(null);
   const [heatmap, setHeatmap] = useState(true);
   const [sel, setSel] = useState(null);
+  const centeredRef = useRef(false);
+
+  // Once we get GPS coords, animate the map to the user's real location (once only)
+  useEffect(() => {
+    if (!coords || centeredRef.current) return;
+    centeredRef.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: coords.lat,
+        longitude: coords.lng,
+        latitudeDelta: 0.012,
+        longitudeDelta: 0.012,
+      },
+      800,
+    );
+  }, [coords]);
 
   function handleMarkerPress(cafe) {
     setSel(prev => prev?.id === cafe.id ? null : cafe);
   }
 
   function recenter() {
-    mapRef.current?.animateToRegion(INITIAL_REGION, 600);
+    const region = coords
+      ? { latitude: coords.lat, longitude: coords.lng, latitudeDelta: 0.012, longitudeDelta: 0.012 }
+      : INITIAL_REGION;
+    mapRef.current?.animateToRegion(region, 600);
   }
 
   const validCafes = cafes.filter(c => c.lat && c.lng);
@@ -178,7 +199,7 @@ export default function MapScreen({ navigation }) {
             <BusynessChip level={sel.busyness} />
           </View>
 
-          <SeatBar avail={sel.seats_avail} total={sel.seats_total} T={T} />
+          <BusynessBar level={sel.busyness} T={T} />
 
           <View style={[styles.btnRow, { marginTop: 14 }]}>
             <TouchableOpacity

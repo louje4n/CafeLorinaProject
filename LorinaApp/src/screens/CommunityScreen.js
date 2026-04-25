@@ -24,6 +24,7 @@ import {
   Platform,
   Dimensions,
   PanResponder,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +32,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { Avi, BusynessChip } from '../components/SharedUI';
-import { ThumbsUpIco } from '../components/Icons';
 import { useCafes } from '../hooks/useCafes';
 import { useCommunityPosts } from '../hooks/useCommunityPosts';
 import { fetchLiveMessages, sendMessage } from '../api/liveChat';
@@ -50,7 +50,7 @@ export default function CommunityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { cafes } = useCafes();
-  const { posts } = useCommunityPosts();
+  const { posts, refreshing: postsRefreshing, refetch: refetchPosts } = useCommunityPosts();
   const [activeCafe, setActiveCafe] = useState(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetTab, setSheetTab] = useState('updates');
@@ -320,6 +320,9 @@ export default function CommunityScreen({ navigation }) {
         style={styles.flex}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={postsRefreshing} onRefresh={refetchPosts} tintColor={T.primary} colors={[T.primary]} />
+        }
       >
         {/* What's buzzing */}
         <View style={[styles.reportCard, { backgroundColor: T.card, borderColor: T.border }]}>
@@ -388,17 +391,6 @@ export default function CommunityScreen({ navigation }) {
                 <Image source={{ uri: p.photoUrl }} style={styles.feedPhoto} resizeMode="cover" />
               </TouchableOpacity>
             ) : null}
-            <View style={styles.postActions}>
-              <TouchableOpacity style={styles.actionBtn}>
-                <ThumbsUpIco color={T.sub} size={12} />
-                <Text style={[styles.actionText, { color: T.sub }]}>
-                  Helpful · {p.likes}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={[styles.actionText, { color: T.sub }]}>Reply</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         ))}
       </ScrollView>
@@ -514,15 +506,6 @@ export default function CommunityScreen({ navigation }) {
                             <Image source={{ uri: item.photoUrl }} style={styles.updatePhoto} resizeMode="cover" />
                           </TouchableOpacity>
                         ) : null}
-                        <View style={styles.postActions}>
-                          <TouchableOpacity style={styles.actionBtn}>
-                            <ThumbsUpIco color={T.sub} size={12} />
-                            <Text style={[styles.actionText, { color: T.sub }]}>Helpful · {item.likes || 0}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity>
-                            <Text style={[styles.actionText, { color: T.sub }]}>Reply</Text>
-                          </TouchableOpacity>
-                        </View>
                       </View>
                     ))
                 ) : (

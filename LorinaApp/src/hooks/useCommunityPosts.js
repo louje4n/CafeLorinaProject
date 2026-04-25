@@ -31,6 +31,7 @@ function normalizePost(row) {
 export function useCommunityPosts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = useCallback(async () => {
     // Proactively purge expired rows on every fetch
@@ -51,7 +52,13 @@ export function useCommunityPosts() {
       setPosts(diversifyRecentFeed(normalized).slice(0, 20));
     }
     setLoading(false);
+    setRefreshing(false);
   }, []);
+
+  const manualRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPosts();
+  }, [fetchPosts]);
 
   useEffect(() => {
     fetchPosts();
@@ -78,7 +85,7 @@ export function useCommunityPosts() {
     };
   }, [fetchPosts]);
 
-  return { posts, loading };
+  return { posts, loading, refreshing, refetch: manualRefresh };
 }
 
 function diversifyRecentFeed(posts) {

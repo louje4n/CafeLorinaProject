@@ -15,12 +15,13 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { LorinaLogo } from '../components/Icons';
-import { BusynessChip, Stars, SeatBar } from '../components/SharedUI';
+import { BusynessChip, Stars, BusynessBar } from '../components/SharedUI';
 import { useCafes } from '../hooks/useCafes';
 import { useLocation } from '../hooks/useLocation';
 
@@ -29,7 +30,7 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('nearby');
   const [popIdx, setPopIdx] = useState(0);
-  const { cafes, loading, error } = useCafes();
+  const { cafes, loading, refreshing, refetch, error } = useCafes();
   const { city, state: locState } = useLocation();
 
   if (error) {
@@ -130,7 +131,7 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
 
-            <SeatBar avail={cafe.seats_avail} total={cafe.seats_total} T={T} />
+            <BusynessBar level={cafe.busyness} T={T} />
 
             <View style={[styles.btnRow, { marginTop: 14 }]}>
               <TouchableOpacity
@@ -206,6 +207,9 @@ export default function HomeScreen({ navigation }) {
         style={styles.flex}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refetch} tintColor={T.primary} colors={[T.primary]} />
+        }
       >
         {loading ? (
           <ActivityIndicator color={T.primary} style={{ marginTop: 40 }} />
@@ -257,7 +261,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </View>
 
-              <SeatBar avail={c.seats_avail} total={c.seats_total} T={T} />
+              <BusynessBar level={c.busyness} T={T} />
             </View>
           </TouchableOpacity>
         ))}

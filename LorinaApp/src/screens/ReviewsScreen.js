@@ -8,7 +8,7 @@
  *
  * Safe area: nav header paddingTop uses insets.top.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { Avi, Stars } from '../components/SharedUI';
 import { HeartIco } from '../components/Icons';
 import { useReviews } from '../hooks/useReviews';
+import { supabase } from '../api/supabase';
 
 export default function ReviewsScreen({ route, navigation }) {
   const { T } = useTheme();
@@ -36,6 +37,61 @@ export default function ReviewsScreen({ route, navigation }) {
   const [txt, setTxt] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState('');
+
+  // Likes state
+  const [likedIds, setLikedIds] = useState(new Set());
+  const [likeCounts, setLikeCounts] = useState({});
+
+  // Load liked IDs and like counts for this cafe's reviews
+  useEffect(() => {
+    if (!c?.id) return;
+    // Load counts for all reviews
+    supabase
+      .from('review_likes')
+      .select('review_id')
+      .in('review_id', reviews.map((r) => r.id))
+      .then(({ data }) => {
+        if (!data) return;
+        const counts = {};
+        data.forEach(({ review_id }) => {
+          counts[review_id] = (counts[review_id] || 0) + 1;
+        });
+        setLikeCounts(counts);
+      });
+    // Load which ones this user liked
+    if (!user) return;
+    supabase
+      .from('review_likes')
+      .select('review_id')
+      .eq('user_id', user.id)
+      .in('review_id', reviews.map((r) => r.id))
+      .then(({ data }) => {
+        if (data) setLikedIds(new Set(data.map((row) => row.review_id)));
+      });
+  }, [c?.id, user, reviews]);
+
+  const toggleLike = useCallback(async (reviewId) => {
+    if (!user) { navigation.navigate('Welcome'); return; }
+    const isLiked = likedIds.has(reviewId);
+
+    // Optimistic update
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (isLiked) next.delete(reviewId); else next.add(reviewId);
+      return next;
+    });
+    setLikeCounts((prev) => ({
+      ...prev,
+      [reviewId]: Math.max(0, (prev[reviewId] || 0) + (isLiked ? -1 : 1)),
+    }));
+
+    if (isLiked) {
+      await supabase.from('review_likes').delete()
+        .eq('review_id', reviewId).eq('user_id', user.id);
+    } else {
+      await supabase.from('review_likes').insert({ review_id: reviewId, user_id: user.id });
+    }
+  }, [user, likedIds, navigation]);
 
   if (!c) return null;
 
@@ -205,10 +261,20 @@ export default function ReviewsScreen({ route, navigation }) {
                   <Text style={[styles.reviewTime, { color: T.sub }]}>{r.time}</Text>
                 </View>
               </View>
-              <View style={styles.likesRow}>
-                <HeartIco color={T.sub} size={12} />
-                <Text style={[styles.likesText, { color: T.sub }]}>{r.likes}</Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => toggleLike(r.id)}
+                style={styles.likesRow}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <HeartIco
+                  color={likedIds.has(r.id) ? '#E05252' : T.sub}
+                  size={12}
+                  filled={likedIds.has(r.id)}
+                />
+                <Text style={[styles.likesText, { color: likedIds.has(r.id) ? '#E05252' : T.sub }]}>
+                  {likeCounts[r.id] ?? r.likes ?? 0}
+                </Text>
+              </TouchableOpacity>
             </View>
             <Text style={[styles.reviewText, { color: T.text }]}>{r.text}</Text>
             {r.studyVibe && (

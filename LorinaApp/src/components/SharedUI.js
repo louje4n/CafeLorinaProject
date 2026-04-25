@@ -62,25 +62,45 @@ export function Avi({ initials, size = 36, color = '#7C5230' }) {
   );
 }
 
-// ─── SeatBar ─────────────────────────────────────────────────────
-export function SeatBar({ avail, total, T }) {
-  const pct = total > 0 ? avail / total : 0;
-  const col = pct > 0.5 ? '#4A9E6A' : pct > 0.2 ? '#C0882A' : '#B84848';
+// ─── BusynessBar ─────────────────────────────────────────────────
+// Replaces SeatBar — shows busyness level as 3 community-sourced segments
+const BUSYNESS_LEVELS = [
+  { key: 'quiet',    label: 'Quiet',    col: '#10B981', desc: 'Plenty of space' },
+  { key: 'moderate', label: 'Moderate', col: '#F59E0B', desc: 'Getting busier' },
+  { key: 'busy',     label: 'Busy',     col: '#EF4444', desc: 'Almost full' },
+];
+
+export function BusynessBar({ level, T }) {
+  const active = BUSYNESS_LEVELS.find((l) => l.key === level) || BUSYNESS_LEVELS[0];
   return (
     <View>
-      <View style={[styles.seatTrack, { backgroundColor: T.border }]}>
-        <View
-          style={[
-            styles.seatFill,
-            { width: `${pct * 100}%`, backgroundColor: col },
-          ]}
-        />
+      <View style={styles.busynessBarRow}>
+        {BUSYNESS_LEVELS.map((l) => {
+          const isActive = l.key === level;
+          return (
+            <View
+              key={l.key}
+              style={[
+                styles.busynessSegment,
+                {
+                  backgroundColor: isActive ? l.col : T.border,
+                  opacity: isActive ? 1 : 0.35,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
-      <Text style={[styles.seatLabel, { color: T.sub }]}>
-        {avail} of {total} seats available
+      <Text style={[styles.busynessBarLabel, { color: active.col }]}>
+        {active.label} · {active.desc}
       </Text>
     </View>
   );
+}
+
+// Keep SeatBar exported so old imports don't crash — points to BusynessBar
+export function SeatBar({ T, level }) {
+  return <BusynessBar level={level} T={T} />;
 }
 
 // ─── Tag ─────────────────────────────────────────────────────────
@@ -130,20 +150,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  // SeatBar
-  seatTrack: {
-    height: 3,
-    borderRadius: 2,
-    overflow: 'hidden',
+  // BusynessBar
+  busynessBarRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 7,
   },
-  seatFill: {
-    height: '100%',
-    borderRadius: 2,
+  busynessSegment: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
   },
-  seatLabel: {
-    fontSize: 10,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 4,
+  busynessBarLabel: {
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
     letterSpacing: 0.1,
   },
 

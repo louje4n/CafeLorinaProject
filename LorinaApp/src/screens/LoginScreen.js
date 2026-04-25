@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { AuthInput, OrDivider, SocialBtn, SpinGlyph } from '../components/AuthUI';
+import { supabase } from '../api/supabase';
 
 export default function LoginScreen({ navigation }) {
   const { T } = useTheme();
@@ -14,6 +15,23 @@ export default function LoginScreen({ navigation }) {
   const [error, setError] = useState('');
 
   const canSubmit = useMemo(() => email.trim() && password.trim(), [email, password]);
+
+  async function handleForgotPassword() {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      Alert.alert('Enter your email', 'Type your email address in the field above, then tap "Forgot password?".');
+      return;
+    }
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed);
+    if (resetError) {
+      Alert.alert('Error', resetError.message);
+    } else {
+      Alert.alert(
+        'Check your inbox',
+        `A password reset link has been sent to ${trimmed}. Check your spam folder if it doesn't arrive.`,
+      );
+    }
+  }
 
   async function handleSubmit() {
     if (!canSubmit || state === 'loading') return;
@@ -50,7 +68,7 @@ export default function LoginScreen({ navigation }) {
 
         <AuthInput label="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" T={T} />
         <AuthInput label="Password" value={password} onChangeText={setPassword} secureTextEntry T={T} />
-        <TouchableOpacity style={styles.forgotWrap}>
+        <TouchableOpacity style={styles.forgotWrap} onPress={handleForgotPassword}>
           <Text style={[styles.forgot, { color: T.primary }]}>Forgot password?</Text>
         </TouchableOpacity>
 
