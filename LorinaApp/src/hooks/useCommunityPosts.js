@@ -33,9 +33,16 @@ export function useCommunityPosts() {
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = useCallback(async () => {
+    // Proactively purge expired rows on every fetch
+    supabase.rpc('purge_expired_live_chats').then(() => {});
+
+    // Only show posts from the last 2 hours — belt-and-suspenders filter
+    const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
     const { data, error } = await supabase
       .from('cafe_live_chats')
       .select('id, cafe_id, message, photo_url, created_at, profiles(display_name, avatar_url), cafes(name)')
+      .gte('created_at', cutoff)
       .order('created_at', { ascending: false })
       .limit(80);
 
@@ -63,7 +70,7 @@ export function useCommunityPosts() {
       )
       .subscribe();
 
-    const interval = setInterval(fetchPosts, 15 * 60 * 1000);
+    const interval = setInterval(fetchPosts, 30 * 60 * 1000);
 
     return () => {
       clearInterval(interval);

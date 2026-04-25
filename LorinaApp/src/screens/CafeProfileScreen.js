@@ -24,6 +24,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { BusynessChip, Stars, Avi, SeatBar, Tag } from '../components/SharedUI';
 import { useReviews } from '../hooks/useReviews';
+import { useSavedCafes } from '../hooks/useSavedCafes';
 
 export default function CafeProfileScreen({ route, navigation }) {
   const { T } = useTheme();
@@ -31,6 +32,8 @@ export default function CafeProfileScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const c = route?.params?.cafe;
   const { reviews } = useReviews(c?.id);
+  const { savedIds, toggleSave } = useSavedCafes(user?.id);
+  const isSaved = c ? savedIds.has(c.id) : false;
 
   if (!c) return null;
 
@@ -73,7 +76,17 @@ export default function CafeProfileScreen({ route, navigation }) {
           <Text style={[styles.cafeName, { color: T.text }]} numberOfLines={1}>
             {c.name}
           </Text>
-          <BusynessChip level={c.busyness} />
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => user ? toggleSave(c) : navigation.navigate('Welcome')}
+              style={[styles.saveIconBtn, { backgroundColor: isSaved ? T.primary + '18' : T.card, borderColor: isSaved ? T.primary : T.border }]}
+            >
+              <Text style={[styles.saveIconText, { color: isSaved ? T.primary : T.sub }]}>
+                {isSaved ? '★' : '☆'}
+              </Text>
+            </TouchableOpacity>
+            <BusynessChip level={c.busyness} />
+          </View>
         </View>
       </View>
 
@@ -209,7 +222,25 @@ const styles = StyleSheet.create({
   headerBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  saveIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveIconText: {
+    fontSize: 17,
+    lineHeight: 20,
   },
   cafeName: {
     fontFamily: 'PlayfairDisplay_700Bold',

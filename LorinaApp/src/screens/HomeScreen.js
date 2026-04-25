@@ -29,8 +29,21 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('nearby');
   const [popIdx, setPopIdx] = useState(0);
-  const { cafes, loading } = useCafes();
+  const { cafes, loading, error } = useCafes();
   const { city, state: locState } = useLocation();
+
+  if (error) {
+    return (
+      <View style={[styles.flex, { backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', padding: 30 }]}>
+        <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 14, color: T.text, textAlign: 'center' }}>
+          Could not load cafés
+        </Text>
+        <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: 12, color: T.sub, textAlign: 'center', marginTop: 6 }}>
+          Check your connection and try again.
+        </Text>
+      </View>
+    );
+  }
 
   function goToCafe(cafe) {
     navigation.navigate('CafeProfile', { cafe });

@@ -42,5 +42,15 @@ export function useReviews(cafeId) {
       });
   }, [cafeId]);
 
-  return { reviews, loading };
+  async function submitReview({ cafeId: cid, userId, rating, text, studyVibe = false }) {
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert({ cafe_id: cid, user_id: userId, rating, text, study_vibe: studyVibe })
+      .select('*, profiles(display_name, avatar_url)')
+      .single();
+    if (error) throw error;
+    setReviews((prev) => [normalizeReview(data), ...prev]);
+  }
+
+  return { reviews, loading, submitReview };
 }

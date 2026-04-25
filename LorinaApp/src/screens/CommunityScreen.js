@@ -64,6 +64,46 @@ export default function CommunityScreen({ navigation }) {
   const slideY = useRef(new Animated.Value(1)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const livePulse = useRef(new Animated.Value(1)).current;
+
+  // Full-screen image viewer — for the main feed (outside sheet)
+  const [viewingImage, setViewingImage] = useState(null);
+  const imgFade  = useRef(new Animated.Value(0)).current;
+  const imgScale = useRef(new Animated.Value(0.88)).current;
+
+  function openImage(url) {
+    setViewingImage(url);
+    Animated.parallel([
+      Animated.timing(imgFade,  { toValue: 1, duration: 260, useNativeDriver: true }),
+      Animated.spring(imgScale, { toValue: 1, tension: 80, friction: 9, useNativeDriver: true }),
+    ]).start();
+  }
+
+  function closeImage() {
+    Animated.parallel([
+      Animated.timing(imgFade,  { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(imgScale, { toValue: 0.88, duration: 200, useNativeDriver: true }),
+    ]).start(() => setViewingImage(null));
+  }
+
+  // Separate image viewer for INSIDE the sheet — can't stack two Modals on iOS
+  const [sheetViewingImage, setSheetViewingImage] = useState(null);
+  const sheetImgFade  = useRef(new Animated.Value(0)).current;
+  const sheetImgScale = useRef(new Animated.Value(0.88)).current;
+
+  function openSheetImage(url) {
+    setSheetViewingImage(url);
+    Animated.parallel([
+      Animated.timing(sheetImgFade,  { toValue: 1, duration: 260, useNativeDriver: true }),
+      Animated.spring(sheetImgScale, { toValue: 1, tension: 80, friction: 9, useNativeDriver: true }),
+    ]).start();
+  }
+
+  function closeSheetImage() {
+    Animated.parallel([
+      Animated.timing(sheetImgFade,  { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(sheetImgScale, { toValue: 0.88, duration: 200, useNativeDriver: true }),
+    ]).start(() => setSheetViewingImage(null));
+  }
   const windowHeight = Dimensions.get('window').height;
   const sheetHeight = Math.round(windowHeight * 0.82);
 
@@ -344,7 +384,9 @@ export default function CommunityScreen({ navigation }) {
             </View>
             <Text style={[styles.postText, { color: T.text }]}>{p.text}</Text>
             {p.photoUrl ? (
-              <Image source={{ uri: p.photoUrl }} style={styles.feedPhoto} resizeMode="cover" />
+              <TouchableOpacity onPress={() => openImage(p.photoUrl)} activeOpacity={0.9}>
+                <Image source={{ uri: p.photoUrl }} style={styles.feedPhoto} resizeMode="cover" />
+              </TouchableOpacity>
             ) : null}
             <View style={styles.postActions}>
               <TouchableOpacity style={styles.actionBtn}>
@@ -468,7 +510,9 @@ export default function CommunityScreen({ navigation }) {
                           <Text style={[styles.postText, { color: T.text }]}>{item.message}</Text>
                         ) : null}
                         {item.photoUrl ? (
-                          <Image source={{ uri: item.photoUrl }} style={styles.updatePhoto} resizeMode="cover" />
+                          <TouchableOpacity onPress={() => openSheetImage(item.photoUrl)} activeOpacity={0.9}>
+                            <Image source={{ uri: item.photoUrl }} style={styles.updatePhoto} resizeMode="cover" />
+                          </TouchableOpacity>
                         ) : null}
                         <View style={styles.postActions}>
                           <TouchableOpacity style={styles.actionBtn}>
@@ -493,7 +537,9 @@ export default function CommunityScreen({ navigation }) {
                       .slice()
                       .reverse()
                       .map((item) => (
-                        <Image key={item.id} source={{ uri: item.photoUrl }} style={styles.photoTile} />
+                        <TouchableOpacity key={item.id} onPress={() => openSheetImage(item.photoUrl)} activeOpacity={0.9}>
+                          <Image source={{ uri: item.photoUrl }} style={styles.photoTile} />
+                        </TouchableOpacity>
                       ))
                   ) : (
                     <Text style={[styles.emptyUpdateText, { color: T.sub }]}>
@@ -598,6 +644,40 @@ export default function CommunityScreen({ navigation }) {
               </View>
             ) : null}
           </KeyboardAvoidingView>
+        </Animated.View>
+
+        {/* In-sheet image viewer — sibling to sheet container, fills the full Modal */}
+        {!!sheetViewingImage && (
+          <Animated.View style={[styles.sheetImgOverlay, { opacity: sheetImgFade }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeSheetImage} />
+            <Animated.Image
+              source={{ uri: sheetViewingImage }}
+              style={[styles.sheetImgFull, { transform: [{ scale: sheetImgScale }] }]}
+              resizeMode="contain"
+            />
+            <Animated.View style={[styles.sheetImgCloseBtn, { opacity: sheetImgFade }]}>
+              <TouchableOpacity onPress={closeSheetImage} style={styles.sheetImgCloseBtnInner}>
+                <Text style={styles.sheetImgCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        )}
+      </Modal>
+
+      {/* ── Full-screen image viewer — rendered last so it sits above the sheet ── */}
+      <Modal visible={!!viewingImage} transparent animationType="none" statusBarTranslucent onRequestClose={closeImage}>
+        <Animated.View style={[styles.imgOverlay, { opacity: imgFade }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeImage} />
+          <Animated.Image
+            source={{ uri: viewingImage ?? undefined }}
+            style={[styles.imgFull, { transform: [{ scale: imgScale }] }]}
+            resizeMode="contain"
+          />
+          <Animated.View style={[styles.imgCloseBtn, { opacity: imgFade }]}>
+            <TouchableOpacity onPress={closeImage} style={styles.imgCloseBtnInner}>
+              <Text style={styles.imgCloseBtnText}>✕</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
       </Modal>
     </View>
@@ -924,4 +1004,57 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#DC2626',
   },
+
+  // Image viewer for the main feed (outside sheet) — inside its own Modal
+  imgOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imgFull: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.78,
+  },
+  imgCloseBtn: {
+    position: 'absolute',
+    top: 56,
+    right: 20,
+  },
+  imgCloseBtnInner: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imgCloseBtnText: { color: '#fff', fontSize: 15 },
+
+  // Image viewer for inside the sheet — fills the full Modal (sibling to sheet container)
+  sheetImgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  sheetImgFull: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.78,
+  },
+  sheetImgCloseBtn: {
+    position: 'absolute',
+    top: 56,
+    right: 20,
+  },
+  sheetImgCloseBtnInner: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetImgCloseBtnText: { color: '#fff', fontSize: 15 },
 });

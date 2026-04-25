@@ -47,7 +47,7 @@ export default function SignupScreen({ navigation }) {
     }
     setState('success');
     await wait(900);
-    navigation.goBack();
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
   }
 
   return (

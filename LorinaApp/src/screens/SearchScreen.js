@@ -24,8 +24,45 @@ import { useCafes } from '../hooks/useCafes';
 
 const FILTER_OPTS = [
   'WiFi', 'Power Outlets', 'Quiet', 'Study Friendly',
-  'Open Now', 'CBD', 'Inner West', 'Under $20',
+  'Open Now', 'CBD', 'Under $5', 'Under $20',
 ];
+
+const CBD_SUBURBS = ['cbd', 'melbourne cbd', 'city', 'docklands', 'southbank', 'carlton', 'fitzroy'];
+
+function isOpenNow(hours) {
+  if (!hours) return true;
+  const h = hours.toLowerCase();
+  if (h.includes('24') || h.includes('always')) return true;
+  try {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    // Match patterns like "7am–9pm", "7:00am–10:00pm", "7am - 9pm"
+    const match = h.match(/(\d+)(?::(\d+))?\s*(am|pm)\s*[–\-–]\s*(\d+)(?::(\d+))?\s*(am|pm)/);
+    if (!match) return true;
+    const toMins = (hr, min, period) => {
+      let h24 = parseInt(hr, 10);
+      if (period === 'pm' && h24 !== 12) h24 += 12;
+      if (period === 'am' && h24 === 12) h24 = 0;
+      return h24 * 60 + (parseInt(min || '0', 10));
+    };
+    const open  = toMins(match[1], match[2], match[3]);
+    const close = toMins(match[4], match[5], match[6]);
+    return currentMins >= open && currentMins < close;
+  } catch {
+    return true;
+  }
+}
+
+const FILTER_FNS = {
+  'WiFi':           (c) => c.wifi === true,
+  'Power Outlets':  (c) => c.power === true,
+  'Quiet':          (c) => c.busyness === 'quiet',
+  'Study Friendly': (c) => (parseFloat(c.study_score) || 0) >= 4,
+  'Open Now':       (c) => isOpenNow(c.hours),
+  'CBD':            (c) => CBD_SUBURBS.some((s) => c.suburb?.toLowerCase().includes(s)),
+  'Under $5':       (c) => c.price === '$',
+  'Under $20':      (c) => c.price === '$' || c.price === '$$',
+};
 
 export default function SearchScreen({ navigation }) {
   const { T } = useTheme();
@@ -34,12 +71,19 @@ export default function SearchScreen({ navigation }) {
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState([]);
 
-  const results = cafes.filter(
-    (c) =>
+  const results = cafes.filter((c) => {
+    const matchesQuery =
       q === '' ||
       c.name.toLowerCase().includes(q.toLowerCase()) ||
-      c.suburb.toLowerCase().includes(q.toLowerCase())
-  );
+      c.suburb.toLowerCase().includes(q.toLowerCase());
+
+    const matchesFilters = filters.every((f) => {
+      const fn = FILTER_FNS[f];
+      return fn ? fn(c) : true;
+    });
+
+    return matchesQuery && matchesFilters;
+  });
 
   function toggleFilter(f) {
     setFilters((prev) =>

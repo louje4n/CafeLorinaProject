@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, Image, StyleSheet, Alert,
+  TextInput, Image, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useProfile } from '../context/ProfileContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../api/supabase';
 
 const ALL_BADGES = [
   { id: '1', label: 'Study Regular', color: '#6B3F1F' },
@@ -21,12 +23,14 @@ export default function EditProfileScreen({ navigation }) {
   const { T, dark, toggleDark } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useProfile();
+  const { user } = useAuth();
 
   const [name, setName]     = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
   const [bio, setBio]       = useState(profile.bio);
   const [avatarUri, setAvatarUri] = useState(profile.avatarUri);
   const [badges, setBadges] = useState(profile.badges.map(b => b.id));
+  const [saving, setSaving] = useState(false);
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -51,13 +55,50 @@ export default function EditProfileScreen({ navigation }) {
     );
   }
 
-  function save() {
-    profile.setName(name.trim() || profile.name);
-    profile.setHandle(handle.trim() || profile.handle);
-    profile.setBio(bio.trim());
-    profile.setAvatarUri(avatarUri);
-    profile.setBadges(ALL_BADGES.filter(b => badges.includes(b.id)));
-    navigation.goBack();
+  async function save() {
+    if (saving || !user) return;
+    setSaving(true);
+    try {
+      let finalAvatarUri = avatarUri;
+
+      // Upload new avatar if it changed
+      if (avatarUri && avatarUri !== profile.avatarUri && !avatarUri.startsWith('http')) {
+        const filename = `${user.id}/avatar.jpg`;
+        const response = await fetch(avatarUri);
+        const blob = await response.blob();
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(filename, blob, { upsert: true, contentType: 'image/jpeg' });
+        if (uploadErr) throw new Error('Avatar upload failed');
+        const { data } = supabase.storage.from('avatars').getPublicUrl(filename);
+        finalAvatarUri = data.publicUrl;
+      }
+
+      // Persist all fields to Supabase
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({
+          display_name: name.trim() || profile.name,
+          handle: handle.trim() || profile.handle,
+          bio: bio.trim(),
+          avatar_url: finalAvatarUri,
+        })
+        .eq('id', user.id);
+
+      if (updateErr) throw updateErr;
+
+      // Sync local context
+      profile.setName(name.trim() || profile.name);
+      profile.setHandle(handle.trim() || profile.handle);
+      profile.setBio(bio.trim());
+      profile.setAvatarUri(finalAvatarUri);
+      profile.setBadges(ALL_BADGES.filter(b => badges.includes(b.id)));
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Could not save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const initials = name?.trim()?.[0]?.toUpperCase() ?? 'U';
@@ -72,9 +113,13 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={[styles.navTitle, { color: T.text }]}>Edit Profile</Text>
         <TouchableOpacity
           onPress={save}
-          style={[styles.saveBtn, { backgroundColor: T.primary }]}
+          disabled={saving}
+          style={[styles.saveBtn, { backgroundColor: T.primary, opacity: saving ? 0.7 : 1 }]}
         >
-          <Text style={styles.saveBtnText}>Save</Text>
+          {saving
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.saveBtnText}>Save</Text>
+          }
         </TouchableOpacity>
       </View>
 
@@ -112,14 +157,29 @@ export default function EditProfileScreen({ navigation }) {
         />
 
         {/* ── Handle ──────────────────────────────────────── */}
-        <Text style={[styles.fieldLabel, { color: T.sub }]}>Handle / University</Text>
+        <Text style={[styles.fieldLabel, { color: T.sub }]}>Handle</Text>
         <TextInput
-          value={handle}
-          onChangeText={setHandle}
+          value={handle.includes('·') ? handle.split('·')[0].trim() : handle}
+          onChangeText={(val) => {
+            const uni = handle.includes('·') ? handle.split('·').slice(1).join('·').trim() : '';
+            setHandle(uni ? `${val.trim()} · ${uni}` : val);
+          }}
           style={[styles.input, { borderColor: T.border, backgroundColor: T.card, color: T.text }]}
           placeholderTextColor={T.sub}
-          placeholder="@handle · University"
+          placeholder="@handle"
           autoCapitalize="none"
+        />
+
+        <Text style={[styles.fieldLabel, { color: T.sub }]}>University (optional)</Text>
+        <TextInput
+          value={handle.includes('·') ? handle.split('·').slice(1).join('·').trim() : ''}
+          onChangeText={(uni) => {
+            const base = handle.includes('·') ? handle.split('·')[0].trim() : handle.trim();
+            setHandle(uni.trim() ? `${base} · ${uni.trim()}` : base);
+          }}
+          style={[styles.input, { borderColor: T.border, backgroundColor: T.card, color: T.text }]}
+          placeholderTextColor={T.sub}
+          placeholder="e.g. UTS Sydney"
         />
 
         {/* ── Bio ─────────────────────────────────────────── */}

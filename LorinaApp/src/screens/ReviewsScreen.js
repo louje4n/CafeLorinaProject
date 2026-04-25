@@ -29,7 +29,14 @@ export default function ReviewsScreen({ route, navigation }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const c = route?.params?.cafe;
-  const { reviews } = useReviews(c?.id);
+  const { reviews, submitReview } = useReviews(c?.id);
+
+  const [showForm, setShowForm] = useState(false);
+  const [rat, setRat] = useState(0);
+  const [txt, setTxt] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+
   if (!c) return null;
 
   if (!user) {
@@ -50,13 +57,26 @@ export default function ReviewsScreen({ route, navigation }) {
       </View>
     );
   }
+
   const avg = reviews.length > 0
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;
 
-  const [showForm, setShowForm] = useState(false);
-  const [rat, setRat] = useState(0);
-  const [txt, setTxt] = useState('');
+  async function handlePost() {
+    if (rat === 0 || !txt.trim() || posting) return;
+    setPosting(true);
+    setPostError('');
+    try {
+      await submitReview({ cafeId: c.id, userId: user.id, rating: rat, text: txt.trim() });
+      setShowForm(false);
+      setRat(0);
+      setTxt('');
+    } catch (e) {
+      setPostError('Failed to post. Please try again.');
+    } finally {
+      setPosting(false);
+    }
+  }
 
   return (
     <View style={[styles.flex, { backgroundColor: T.bg }]}>
@@ -145,18 +165,26 @@ export default function ReviewsScreen({ route, navigation }) {
                 { borderColor: T.border, backgroundColor: T.surf, color: T.text },
               ]}
             />
+            {postError ? (
+              <Text style={{ color: '#E05252', fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 6 }}>
+                {postError}
+              </Text>
+            ) : null}
             <View style={styles.formActions}>
               <TouchableOpacity
-                onPress={() => { setShowForm(false); setRat(0); setTxt(''); }}
+                onPress={() => { setShowForm(false); setRat(0); setTxt(''); setPostError(''); }}
                 style={[styles.cancelBtn, { borderColor: T.border }]}
               >
                 <Text style={[styles.cancelBtnText, { color: T.sub }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => { setShowForm(false); setRat(0); setTxt(''); }}
-                style={[styles.postBtn, { backgroundColor: T.primary }]}
+                onPress={handlePost}
+                disabled={rat === 0 || !txt.trim() || posting}
+                style={[styles.postBtn, { backgroundColor: rat > 0 && txt.trim() ? T.primary : T.surf }]}
               >
-                <Text style={styles.postBtnText}>Post review</Text>
+                <Text style={[styles.postBtnText, { color: rat > 0 && txt.trim() ? '#fff' : T.sub }]}>
+                  {posting ? 'Posting...' : 'Post review'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

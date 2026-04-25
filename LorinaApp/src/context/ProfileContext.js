@@ -1,18 +1,53 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../api/supabase';
 
 const ProfileContext = createContext(null);
 
 export function ProfileProvider({ children }) {
-  const [name, setName]   = useState('Sofia R.');
-  const [handle, setHandle] = useState('@sofiaR · UTS Sydney');
-  const [bio, setBio]     = useState('Coffee lover & study enthusiast. Always searching for the perfect flat white.');
+  const [name, setName]         = useState('');
+  const [handle, setHandle]     = useState('');
+  const [bio, setBio]           = useState('');
   const [avatarUri, setAvatarUri] = useState(null);
-  const [badges, setBadges] = useState([
-    { id: '1', label: 'Study Regular', color: '#6B3F1F' },
-    { id: '2', label: 'Matcha Fan',    color: '#4A9E6A' },
-    { id: '3', label: 'Early Riser',   color: '#C0882A' },
-    { id: '4', label: 'Café Hopper',   color: '#5A7FA0' },
-  ]);
+  const [badges, setBadges]     = useState([]);
+
+  useEffect(() => {
+    // Load profile from Supabase whenever auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadProfile(session.user);
+      } else {
+        // Signed out — reset to empty
+        setName('');
+        setHandle('');
+        setBio('');
+        setAvatarUri(null);
+        setBadges([]);
+      }
+    });
+
+    // Also load on mount if already signed in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) loadProfile(session.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function loadProfile(user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_url, bio, handle')
+      .eq('id', user.id)
+      .single();
+
+    const displayName = data?.display_name || user.user_metadata?.display_name || 'User';
+    const firstName = displayName.split(' ')[0].toLowerCase();
+
+    setName(displayName);
+    setHandle(data?.handle || `@${firstName}`);
+    setBio(data?.bio || '');
+    setAvatarUri(data?.avatar_url || null);
+  }
 
   return (
     <ProfileContext.Provider value={{
